@@ -1,10 +1,10 @@
-import { useContext } from "react";
-import { Navigate, NavLink, Outlet } from "react-router";
-import { FaBars, FaBus, FaHome, FaUserShield } from "react-icons/fa";
-import { AuthContext } from "../Context/AuthContext";
-import ManuAdmin from "../dashboard/adminDashborad/ManuAdmin";
-import ManuVendor from "../dashboard/vendorDashboard/ManuVendor";
-import ManuUser from "../dashboard/userDashborad/ManuUser";
+import { useContext } from 'react';
+import { Navigate, NavLink, Outlet } from 'react-router';
+import { FaBars, FaBus, FaHome, FaUserShield } from 'react-icons/fa';
+import { AuthContext } from '../Context/AuthContext';
+import ManuAdmin from '../dashboard/adminDashborad/ManuAdmin';
+import ManuVendor from '../dashboard/vendorDashboard/ManuVendor';
+import ManuUser from '../dashboard/userDashborad/ManuUser';
 
 const DashboardLayout = () => {
   const { user, loading, role } = useContext(AuthContext);
@@ -84,7 +84,7 @@ const DashboardLayout = () => {
                   to="/"
                   className={({ isActive }) =>
                     `flex items-center gap-3 rounded-lg ${
-                      isActive ? "bg-primary text-white" : "hover:bg-slate-700"
+                      isActive ? 'bg-primary text-white' : 'hover:bg-slate-700'
                     }`
                   }
                 >
@@ -94,9 +94,9 @@ const DashboardLayout = () => {
               </li>
             </ul>
 
-            {role === "admin" ? (
+            {role === 'admin' ? (
               <ManuAdmin />
-            ) : role === "vendor" ? (
+            ) : role === 'vendor' ? (
               <ManuVendor />
             ) : (
               <ManuUser />

@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from 'react';
 import {
   FaUserCircle,
   FaCalendarAlt,
   FaChevronLeft,
   FaChevronRight,
-} from "react-icons/fa";
+} from 'react-icons/fa';
 
 const AdminPayments = () => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
@@ -19,10 +19,10 @@ const AdminPayments = () => {
       try {
         setLoading(true);
 
-        const token = localStorage.getItem("access-token");
+        const token = localStorage.getItem('access-token');
 
         const res = await fetch(
-          "https://voyago-server-theta.vercel.app/api/admin/payments",
+          `${import.meta.env.VITE_API_URL}/api/admin/payments`,
           {
             headers: {
               authorization: `Bearer ${token}`,
@@ -32,7 +32,7 @@ const AdminPayments = () => {
 
         const data = await res.json();
 
-        if (!res.ok) throw new Error(data.message || "Error");
+        if (!res.ok) throw new Error(data.message || 'Error');
 
         setPayments(Array.isArray(data) ? data : []);
       } catch (err) {
@@ -128,7 +128,7 @@ const AdminPayments = () => {
 
                 <div className="overflow-hidden">
                   <p className="text-slate-800 font-medium truncate">
-                    {pay.email || "Unknown User"}
+                    {pay.email || 'Unknown User'}
                   </p>
 
                   <p className="text-xs text-slate-600">Customer Account</p>
@@ -145,13 +145,13 @@ const AdminPayments = () => {
               {/* TRANSACTION */}
               <div className="overflow-hidden">
                 <div className="bg-slate-100 text-slate-600 px-3 py-2 rounded-xl text-xs md:text-sm font-mono truncate">
-                  {pay.transactionId || "No Transaction ID"}
+                  {pay.transactionId || 'No Transaction ID'}
                 </div>
               </div>
 
               {/* DATE */}
               <div className="text-slate-600 text-sm">
-                {pay.date ? new Date(pay.date).toLocaleString() : "N/A"}
+                {pay.date ? new Date(pay.date).toLocaleString() : 'N/A'}
               </div>
             </div>
           ))
@@ -162,19 +162,19 @@ const AdminPayments = () => {
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-4 mt-8">
           <button
-            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+            onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
             className="w-11 h-11 rounded-xl bg-white border border-slate-200 shadow-sm hover:bg-amber-300 hover:border-amber-300 transition-all flex items-center justify-center text-slate-700"
           >
             <FaChevronLeft />
           </button>
 
           <div className="px-5 py-2 rounded-xl bg-white border border-slate-200 shadow-sm text-slate-700 font-medium">
-            Page <span className="font-bold text-amber-600">{currentPage}</span>{" "}
+            Page <span className="font-bold text-amber-600">{currentPage}</span>{' '}
             of {totalPages}
           </div>
 
           <button
-            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
             className="w-11 h-11 rounded-xl bg-white border border-slate-200 shadow-sm hover:bg-amber-300 hover:border-amber-300 transition-all flex items-center justify-center text-slate-700"
           >
             <FaChevronRight />

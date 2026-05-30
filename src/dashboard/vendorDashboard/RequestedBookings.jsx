@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
   FaUser,
   FaBus,
@@ -6,13 +6,13 @@ import {
   FaMoneyBillWave,
   FaCheckCircle,
   FaTimesCircle,
-} from "react-icons/fa";
-import axios from "axios";
-import Swal from "sweetalert2";
+} from 'react-icons/fa';
+import axios from 'axios';
+import Swal from 'sweetalert2';
 
 const Toast = Swal.mixin({
   toast: true,
-  position: "top-end",
+  position: 'top-end',
   showConfirmButton: false,
   timer: 2000,
 });
@@ -25,9 +25,9 @@ const RequestedBookings = () => {
 
   useEffect(() => {
     axios
-      .get("https://voyago-server-theta.vercel.app/api/requested-booking")
-      .then((res) => setBooking(res.data || []))
-      .catch((err) => console.log(err));
+      .get(`${import.meta.env.VITE_API_URL}/api/requested-booking`)
+      .then(res => setBooking(res.data || []))
+      .catch(err => console.log(err));
   }, []);
 
   // pagination safe fix
@@ -38,46 +38,46 @@ const RequestedBookings = () => {
   const currentBookings = booking.slice(indexOfFirst, indexOfLast);
 
   // normalize status (IMPORTANT FIX)
-  const getStatusStyle = (status) => {
+  const getStatusStyle = status => {
     const s = status?.toLowerCase();
 
-    if (s === "pending") return "bg-yellow-50 text-yellow-600";
-    if (s === "approved") return "bg-green-50 text-green-600";
-    if (s === "rejected") return "bg-red-50 text-red-600";
-    if (s === "paid") return "bg-blue-50 text-blue-600";
+    if (s === 'pending') return 'bg-yellow-50 text-yellow-600';
+    if (s === 'approved') return 'bg-green-50 text-green-600';
+    if (s === 'rejected') return 'bg-red-50 text-red-600';
+    if (s === 'paid') return 'bg-blue-50 text-blue-600';
 
-    return "bg-slate-100 text-slate-600";
+    return 'bg-slate-100 text-slate-600';
   };
 
-  const handleApprove = async (id) => {
+  const handleApprove = async id => {
     try {
       await axios.patch(
-        `https://voyago-server-theta.vercel.app/api/requested-booking/approve/${id}`,
+        `${import.meta.env.VITE_API_URL}/api/requested-booking/approve/${id}`,
       );
 
-      setBooking((prev) =>
-        prev.map((b) => (b._id === id ? { ...b, status: "Approved" } : b)),
+      setBooking(prev =>
+        prev.map(b => (b._id === id ? { ...b, status: 'Approved' } : b)),
       );
 
-      Toast.fire({ icon: "success", title: "Approved" });
+      Toast.fire({ icon: 'success', title: 'Approved' });
     } catch {
-      Toast.fire({ icon: "error", title: "Failed" });
+      Toast.fire({ icon: 'error', title: 'Failed' });
     }
   };
 
-  const handleReject = async (id) => {
+  const handleReject = async id => {
     try {
       await axios.patch(
-        `https://voyago-server-theta.vercel.app/api/requested-booking/reject/${id}`,
+        `${import.meta.env.VITE_API_URL}/api/requested-booking/reject/${id}`,
       );
 
-      setBooking((prev) =>
-        prev.map((b) => (b._id === id ? { ...b, status: "Rejected" } : b)),
+      setBooking(prev =>
+        prev.map(b => (b._id === id ? { ...b, status: 'Rejected' } : b)),
       );
 
-      Toast.fire({ icon: "success", title: "Rejected" });
+      Toast.fire({ icon: 'success', title: 'Rejected' });
     } catch {
-      Toast.fire({ icon: "error", title: "Failed" });
+      Toast.fire({ icon: 'error', title: 'Failed' });
     }
   };
 
@@ -108,7 +108,7 @@ const RequestedBookings = () => {
 
         {/* Table Rows */}
         {currentBookings.length > 0 ? (
-          currentBookings.map((b) => (
+          currentBookings.map(b => (
             <div
               key={b._id}
               className="grid grid-cols-6 gap-4 px-6 py-5 items-center border-b border-slate-100 hover:bg-slate-50 transition-all duration-200"
@@ -120,7 +120,7 @@ const RequestedBookings = () => {
                 </div>
 
                 <span className="truncate">
-                  {b.customerName || b.email || "Unknown"}
+                  {b.customerName || b.email || 'Unknown'}
                 </span>
               </div>
 
@@ -128,14 +128,14 @@ const RequestedBookings = () => {
               <div className="flex items-center gap-2 text-sm text-slate-600">
                 <FaMapMarkerAlt className="text-blue-500" />
 
-                <span>{b.bookingDate || "N/A"}</span>
+                <span>{b.bookingDate || 'N/A'}</span>
               </div>
 
               {/* Bus */}
               <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
                 <FaBus className="text-orange-500" />
 
-                <span>{b.title || "N/A"}</span>
+                <span>{b.title || 'N/A'}</span>
               </div>
 
               {/* Price */}
@@ -152,7 +152,7 @@ const RequestedBookings = () => {
                     b.status,
                   )}`}
                 >
-                  {b.status || "unknown"}
+                  {b.status || 'unknown'}
                 </span>
               </div>
 
@@ -186,7 +186,7 @@ const RequestedBookings = () => {
       <div className="flex items-center justify-between mt-8 flex-wrap gap-4">
         {/* Page Info */}
         <div className="text-sm text-slate-500 font-medium">
-          Page <span className="text-slate-800 font-bold">{currentPage}</span>{" "}
+          Page <span className="text-slate-800 font-bold">{currentPage}</span>{' '}
           of <span className="text-slate-800 font-bold">{totalPages}</span>
         </div>
 
@@ -194,12 +194,12 @@ const RequestedBookings = () => {
         <div className="flex items-center gap-2 bg-white border border-slate-200 shadow-md rounded-2xl p-2">
           {/* Previous */}
           <button
-            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+            onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
             disabled={currentPage === 1}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
               currentPage === 1
-                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                : "bg-slate-900 text-white hover:scale-105"
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                : 'bg-slate-900 text-white hover:scale-105'
             }`}
           >
             Prev
@@ -220,8 +220,8 @@ const RequestedBookings = () => {
                   onClick={() => setCurrentPage(page)}
                   className={`w-10 h-10 rounded-xl text-sm font-bold transition-all duration-200 ${
                     currentPage === page
-                      ? "bg-amber-500 text-white shadow-lg scale-105"
-                      : "text-slate-700 hover:bg-slate-100"
+                      ? 'bg-amber-500 text-white shadow-lg scale-105'
+                      : 'text-slate-700 hover:bg-slate-100'
                   }`}
                 >
                   {page}
@@ -231,12 +231,12 @@ const RequestedBookings = () => {
 
           {/* Next */}
           <button
-            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
             disabled={currentPage === totalPages}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
               currentPage === totalPages
-                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                : "bg-amber-500 text-white hover:scale-105"
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                : 'bg-amber-500 text-white hover:scale-105'
             }`}
           >
             Next

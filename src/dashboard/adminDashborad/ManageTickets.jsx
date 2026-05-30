@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
-import Swal from "sweetalert2";
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import Swal from 'sweetalert2';
 
 const ManageTickets = () => {
   const [tickets, setTickets] = useState([]);
@@ -12,7 +12,7 @@ const ManageTickets = () => {
   const fetchTickets = async () => {
     try {
       const res = await axios.get(
-        "https://voyago-server-theta.vercel.app/api/tickets",
+        `${import.meta.env.VITE_API_URL}/api/tickets`,
       );
 
       setTickets(res.data || []);
@@ -29,14 +29,14 @@ const ManageTickets = () => {
   const handleStatus = async (id, status) => {
     try {
       await axios.patch(
-        `https://voyago-server-theta.vercel.app/api/tickets/status/${id}`,
+        `${import.meta.env.VITE_API_URL}/api/tickets/status/${id}`,
         {
           status,
         },
       );
 
       Swal.fire({
-        icon: "success",
+        icon: 'success',
         title: `Ticket ${status}`,
         timer: 1500,
         showConfirmButton: false,
@@ -122,14 +122,14 @@ const ManageTickets = () => {
                   <td className="py-5 px-6">
                     <span
                       className={`px-4 py-2 rounded-full text-sm font-bold ${
-                        ticket.verificationStatus === "approved"
-                          ? "bg-green-100 text-green-700"
-                          : ticket.verificationStatus === "rejected"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-yellow-100 text-yellow-700"
+                        ticket.verificationStatus === 'approved'
+                          ? 'bg-green-100 text-green-700'
+                          : ticket.verificationStatus === 'rejected'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-yellow-100 text-yellow-700'
                       }`}
                     >
-                      {ticket.verificationStatus || "pending"}
+                      {ticket.verificationStatus || 'pending'}
                     </span>
                   </td>
 
@@ -137,14 +137,14 @@ const ManageTickets = () => {
                   <td className="py-5 px-6">
                     <div className="flex flex-wrap gap-3">
                       <button
-                        onClick={() => handleStatus(ticket._id, "approved")}
+                        onClick={() => handleStatus(ticket._id, 'approved')}
                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition"
                       >
                         Approve
                       </button>
 
                       <button
-                        onClick={() => handleStatus(ticket._id, "rejected")}
+                        onClick={() => handleStatus(ticket._id, 'rejected')}
                         className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition"
                       >
                         Reject
@@ -179,14 +179,14 @@ const ManageTickets = () => {
             </button>
 
             {/* Page Numbers */}
-            {[...Array(totalPages).keys()].map((num) => (
+            {[...Array(totalPages).keys()].map(num => (
               <button
                 key={num}
                 onClick={() => setCurrentPage(num + 1)}
                 className={`w-11 h-11 rounded-xl font-bold transition ${
                   currentPage === num + 1
-                    ? "bg-indigo-600 text-white shadow-lg"
-                    : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-100"
+                    ? 'bg-indigo-600 text-white shadow-lg'
+                    : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 {num + 1}

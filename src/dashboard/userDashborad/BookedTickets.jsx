@@ -1,22 +1,22 @@
-import React, { useContext, useEffect, useState } from "react";
-import axios from "axios";
-import { AuthContext } from "../../Context/AuthContext";
+import React, { useContext, useEffect, useState } from 'react';
+import axios from 'axios';
+import { AuthContext } from '../../Context/AuthContext';
 
 const BookedTickets = () => {
   const { user } = useContext(AuthContext);
   const [tickets, setTickets] = useState([]);
-  console.log("BookedTickets - User:", user);
-  console.log("BookedTickets - Tickets:", tickets);
+  console.log('BookedTickets - User:', user);
+  console.log('BookedTickets - Tickets:', tickets);
 
   useEffect(() => {
     if (user?.email) {
       axios
-        .get(`https://voyago-server-theta.vercel.app/bookings/${user.email}`)
-        .then((res) => {
+        .get(`${import.meta.env.VITE_API_URL}/bookings/${user.email}`)
+        .then(res => {
           setTickets(res.data);
-          console.log("BookedTickets - Fetched Tickets:", res.data);
+          console.log('BookedTickets - Fetched Tickets:', res.data);
         })
-        .catch((err) => console.log(err));
+        .catch(err => console.log(err));
     }
   }, [user]);
 
@@ -52,7 +52,7 @@ const BookedTickets = () => {
           </div>
         ) : (
           <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tickets.map((ticket) => (
+            {tickets.map(ticket => (
               <div
                 key={ticket._id}
                 className="bg-white rounded-2xl shadow-md hover:shadow-2xl transition duration-300 overflow-hidden border border-amber-100"
@@ -85,9 +85,9 @@ const BookedTickets = () => {
 
                     <span
                       className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                        ticket.status === "confirmed"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-yellow-100 text-yellow-700"
+                        ticket.status === 'confirmed'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-yellow-100 text-yellow-700'
                       }`}
                     >
                       {ticket.status}

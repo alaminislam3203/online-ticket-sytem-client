@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
   FaBus,
   FaCalendarAlt,
@@ -6,20 +6,20 @@ import {
   FaMoneyBillWave,
   FaEdit,
   FaTrashAlt,
-} from "react-icons/fa";
+} from 'react-icons/fa';
 
-import axios from "axios";
+import axios from 'axios';
 
 const MyAddedTickets = () => {
   const [tickets, setTickets] = useState([]);
 
   useEffect(() => {
     axios
-      .get("https://voyago-server-theta.vercel.app/api/tickets")
-      .then((res) => {
+      .get(`${import.meta.env.VITE_API_URL}/api/tickets`)
+      .then(res => {
         setTickets(res.data);
       })
-      .catch((error) => {
+      .catch(error => {
         console.log(error);
       });
   }, []);
@@ -50,7 +50,7 @@ const MyAddedTickets = () => {
       {/* Tickets */}
       {tickets.length > 0 ? (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          {tickets.map((ticket) => (
+          {tickets.map(ticket => (
             <div
               key={ticket._id}
               className="group bg-white rounded-[30px] overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 border border-slate-200"

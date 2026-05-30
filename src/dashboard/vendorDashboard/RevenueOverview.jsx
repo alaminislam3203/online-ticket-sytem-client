@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { FaMoneyBillWave, FaBus, FaUsers, FaTicketAlt } from "react-icons/fa";
+import React, { useEffect, useState } from 'react';
+import { FaMoneyBillWave, FaBus, FaUsers, FaTicketAlt } from 'react-icons/fa';
 
-import axios from "axios";
+import axios from 'axios';
 
 const RevenueOverview = () => {
   const [overview, setOverview] = useState({
@@ -13,39 +13,39 @@ const RevenueOverview = () => {
 
   useEffect(() => {
     axios
-      .get("https://voyago-server-theta.vercel.app/revenue-overview")
-      .then((res) => {
+      .get(`${import.meta.env.VITE_API_URL}/api/vendor/revenue-overview`)
+      .then(res => {
         setOverview(res.data);
       })
-      .catch((err) => {
+      .catch(err => {
         console.log(err);
       });
   }, []);
 
   const cards = [
     {
-      title: "Total Revenue",
+      title: 'Total Revenue',
       value: `৳ ${overview.totalRevenue}`,
       icon: <FaMoneyBillWave />,
-      bg: "from-green-500 to-emerald-600",
+      bg: 'from-green-500 to-emerald-600',
     },
     {
-      title: "Total Bookings",
+      title: 'Total Bookings',
       value: overview.totalBookings,
       icon: <FaBus />,
-      bg: "from-blue-500 to-indigo-600",
+      bg: 'from-blue-500 to-indigo-600',
     },
     {
-      title: "Total Tickets",
+      title: 'Total Tickets',
       value: overview.totalTickets,
       icon: <FaTicketAlt />,
-      bg: "from-orange-500 to-amber-500",
+      bg: 'from-orange-500 to-amber-500',
     },
     {
-      title: "Total Customers",
+      title: 'Total Customers',
       value: overview.totalCustomers,
       icon: <FaUsers />,
-      bg: "from-pink-500 to-rose-600",
+      bg: 'from-pink-500 to-rose-600',
     },
   ];
 

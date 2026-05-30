@@ -1,6 +1,6 @@
-import React, { useContext, useEffect, useState } from "react";
-import axios from "axios";
-import { AuthContext } from "../../Context/AuthContext";
+import React, { useContext, useEffect, useState } from 'react';
+import axios from 'axios';
+import { AuthContext } from '../../Context/AuthContext';
 
 const TransactionHistory = () => {
   const { user } = useContext(AuthContext);
@@ -9,11 +9,9 @@ const TransactionHistory = () => {
   useEffect(() => {
     if (user?.email) {
       axios
-        .get(
-          `https://voyago-server-theta.vercel.app/transactions/${user.email}`,
-        )
-        .then((res) => setTransactions(res.data))
-        .catch((err) => console.log(err));
+        .get(`${import.meta.env.VITE_API_URL}/transactions/${user.email}`)
+        .then(res => setTransactions(res.data))
+        .catch(err => console.log(err));
     }
   }, [user]);
 
@@ -34,7 +32,7 @@ const TransactionHistory = () => {
         </div>
       ) : (
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {transactions.map((item) => (
+          {transactions.map(item => (
             <div
               key={item._id}
               className="bg-white/70 backdrop-blur-lg border border-gray-200 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 p-5"

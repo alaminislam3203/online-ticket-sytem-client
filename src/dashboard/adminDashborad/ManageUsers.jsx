@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
-import Swal from "sweetalert2";
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import Swal from 'sweetalert2';
 
 const ManageUsers = () => {
   const [users, setUsers] = useState([]);
@@ -11,10 +11,10 @@ const ManageUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem("access-token");
+      const token = localStorage.getItem('access-token');
 
       const res = await axios.get(
-        "https://voyago-server-theta.vercel.app/api/admin/users",
+        `${import.meta.env.VITE_API_URL}/api/admin/users`,
         {
           headers: {
             authorization: `Bearer ${token}`,
@@ -29,27 +29,24 @@ const ManageUsers = () => {
   };
 
   const updateRole = async (id, role) => {
-    await axios.patch(
-      `https://voyago-server-theta.vercel.app/api/users/role/${id}`,
-      { role },
-    );
+    await axios.patch(`${import.meta.env.VITE_API_URL}/api/users/role/${id}`, {
+      role,
+    });
 
     Swal.fire({
-      icon: "success",
+      icon: 'success',
       title: `User is now ${role}`,
     });
 
     fetchUsers();
   };
 
-  const markFraud = async (id) => {
-    await axios.patch(
-      `https://voyago-server-theta.vercel.app/api/users/fraud/${id}`,
-    );
+  const markFraud = async id => {
+    await axios.patch(`${import.meta.env.VITE_API_URL}/api/users/fraud/${id}`);
 
     Swal.fire({
-      icon: "warning",
-      title: "Vendor marked as fraud",
+      icon: 'warning',
+      title: 'Vendor marked as fraud',
     });
 
     fetchUsers();
@@ -77,7 +74,7 @@ const ManageUsers = () => {
 
           {/* Body */}
           <tbody>
-            {users.map((user) => (
+            {users.map(user => (
               <tr
                 key={user._id}
                 className="border-b hover:bg-slate-50 transition"
@@ -94,11 +91,11 @@ const ManageUsers = () => {
                 <td className="py-4 px-6">
                   <span
                     className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                      user.role === "admin"
-                        ? "bg-blue-100 text-blue-700"
-                        : user.role === "vendor"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-slate-200 text-slate-700"
+                      user.role === 'admin'
+                        ? 'bg-blue-100 text-blue-700'
+                        : user.role === 'vendor'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-slate-200 text-slate-700'
                     }`}
                   >
                     {user.role}
@@ -109,20 +106,20 @@ const ManageUsers = () => {
                 <td className="py-4 px-6">
                   <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={() => updateRole(user._id, "admin")}
+                      onClick={() => updateRole(user._id, 'admin')}
                       className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-sm"
                     >
                       Admin
                     </button>
 
                     <button
-                      onClick={() => updateRole(user._id, "vendor")}
+                      onClick={() => updateRole(user._id, 'vendor')}
                       className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded-lg text-sm"
                     >
                       Vendor
                     </button>
 
-                    {user.role === "vendor" && (
+                    {user.role === 'vendor' && (
                       <button
                         onClick={() => markFraud(user._id)}
                         className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm"
