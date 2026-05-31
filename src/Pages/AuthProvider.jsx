@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
@@ -7,10 +7,10 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   updateProfile,
-} from "firebase/auth";
-import { AuthContext } from "../Context/AuthContext";
-import { auth } from "../firebase/Firebase.init";
-import UseAxiosSecure from "../hooks/UseAxiosSecure";
+} from 'firebase/auth';
+import { AuthContext } from '../Context/AuthContext';
+import { auth } from '../firebase/Firebase.init';
+import UseAxiosSecure from '../hooks/UseAxiosSecure';
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -29,7 +29,7 @@ const AuthProvider = ({ children }) => {
 
   const signOutUser = () => signOut(auth);
 
-  const updateUserProfile = (profile) => {
+  const updateUserProfile = profile => {
     return updateProfile(auth.currentUser, profile);
   };
 
@@ -37,18 +37,18 @@ const AuthProvider = ({ children }) => {
   const axiosSecure = UseAxiosSecure();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async currentUser => {
       //
       setUser(currentUser);
       if (currentUser?.email) {
         try {
           const res = await axiosSecure.get(`/users/role/${currentUser.email}`);
-          console.log("Role fetch response:", res.data);
+          console.log('Role fetch response:', res.data);
           setRole(res.data.role);
           setLoading(false);
         } catch (error) {
-          console.error("Role fetch error", error);
-          setRole("user");
+          console.error('Role fetch error', error);
+          setRole('user');
           setLoading(false);
         }
       } else {

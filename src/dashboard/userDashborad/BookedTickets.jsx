@@ -1,9 +1,15 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '../../Context/AuthContext';
+import UseAxiosSecure from '../../hooks/UseAxiosSecure';
 
 // ── Countdown hook ──────────────────────────────────────────
-const useCountdown = targetDate => {
+const useCountdown = (departureDate, departureTime) => {
   const calc = useCallback(() => {
-    const diff = new Date(targetDate) - new Date();
+    if (!departureDate) return null;
+    // departureDate + departureTime মিলিয়ে exact datetime বানাও
+    const timeStr = departureTime || '00:00';
+    const target = new Date(`${departureDate}T${timeStr}:00`);
+    const diff = target - new Date();
     if (diff <= 0) return null;
     return {
       days: Math.floor(diff / 86400000),
@@ -11,10 +17,11 @@ const useCountdown = targetDate => {
       minutes: Math.floor((diff % 3600000) / 60000),
       seconds: Math.floor((diff % 60000) / 1000),
     };
-  }, [targetDate]);
+  }, [departureDate, departureTime]);
 
   const [time, setTime] = useState(calc);
   useEffect(() => {
+    setTime(calc());
     const id = setInterval(() => setTime(calc()), 1000);
     return () => clearInterval(id);
   }, [calc]);
@@ -23,8 +30,10 @@ const useCountdown = targetDate => {
 
 // ── Single booking card ─────────────────────────────────────
 const BookingCard = ({ booking, onPayNow }) => {
-  const departure = booking.departureDate || booking.from_date;
-  const countdown = useCountdown(departure);
+  // tickets collection থেকে আসা departureDate ও departureTime
+  const departureDate = booking.departureDate || booking.from_date;
+  const departureTime = booking.departureTime || booking.departure_time;
+  const countdown = useCountdown(departureDate, departureTime);
   const isPast = !countdown;
   const status = (booking.status || 'pending').toLowerCase();
 
@@ -55,7 +64,6 @@ const BookingCard = ({ booking, onPayNow }) => {
     },
   };
   const s = statusConfig[status] || statusConfig.pending;
-
   const canPay = status === 'approved' && !isPast;
 
   return (
@@ -63,7 +71,6 @@ const BookingCard = ({ booking, onPayNow }) => {
       className="rounded-2xl overflow-hidden flex flex-col"
       style={{ background: '#0f172a', border: '0.5px solid #1e293b' }}
     >
-      {/* Image */}
       {booking.image && (
         <img
           src={booking.image}
@@ -115,9 +122,9 @@ const BookingCard = ({ booking, onPayNow }) => {
               ).toFixed(2)}`,
             },
             {
-              label: 'Departure',
-              value: departure
-                ? new Date(departure).toLocaleDateString('en-US', {
+              label: 'Departure Date',
+              value: departureDate
+                ? new Date(departureDate).toLocaleDateString('en-US', {
                     day: 'numeric',
                     month: 'short',
                     year: 'numeric',
@@ -125,8 +132,8 @@ const BookingCard = ({ booking, onPayNow }) => {
                 : '—',
             },
             {
-              label: 'Transport',
-              value: booking.busType || booking.transportType || '—',
+              label: 'Departure Time',
+              value: departureTime || '—',
             },
           ].map(item => (
             <div key={item.label}>
@@ -143,36 +150,51 @@ const BookingCard = ({ booking, onPayNow }) => {
           ))}
         </div>
 
-        {/* Countdown — only if not rejected and not past */}
+        {/* Countdown */}
         {status !== 'rejected' && !isPast && countdown && (
           <div
-            className="rounded-xl p-3 grid grid-cols-4 gap-1 text-center"
+            className="rounded-xl p-3 flex flex-col gap-1"
             style={{
               background: 'rgba(15,23,42,0.8)',
               border: '0.5px solid #1e293b',
             }}
           >
-            {[
-              { label: 'Days', val: countdown.days },
-              { label: 'Hours', val: countdown.hours },
-              { label: 'Min', val: countdown.minutes },
-              { label: 'Sec', val: countdown.seconds },
-            ].map(t => (
-              <div key={t.label}>
-                <p
-                  className="text-lg font-bold tabular-nums"
-                  style={{ color: '#60a5fa' }}
+            <p
+              className="text-[10px] uppercase tracking-widest text-center mb-1"
+              style={{ color: '#334155' }}
+            >
+              Departure Countdown
+            </p>
+            <div className="grid grid-cols-4 gap-1 text-center">
+              {[
+                { label: 'Days', val: countdown.days },
+                { label: 'Hours', val: countdown.hours },
+                { label: 'Min', val: countdown.minutes },
+                { label: 'Sec', val: countdown.seconds },
+              ].map(t => (
+                <div
+                  key={t.label}
+                  className="rounded-lg py-1.5"
+                  style={{
+                    background: '#0f172a',
+                    border: '0.5px solid #1e293b',
+                  }}
                 >
-                  {String(t.val).padStart(2, '0')}
-                </p>
-                <p
-                  className="text-[9px] uppercase tracking-widest"
-                  style={{ color: '#334155' }}
-                >
-                  {t.label}
-                </p>
-              </div>
-            ))}
+                  <p
+                    className="text-lg font-bold tabular-nums"
+                    style={{ color: '#60a5fa' }}
+                  >
+                    {String(t.val).padStart(2, '0')}
+                  </p>
+                  <p
+                    className="text-[9px] uppercase tracking-widest"
+                    style={{ color: '#334155' }}
+                  >
+                    {t.label}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -182,7 +204,6 @@ const BookingCard = ({ booking, onPayNow }) => {
           </p>
         )}
 
-        {/* Pay Now button */}
         {canPay && (
           <button
             onClick={() => onPayNow(booking)}
@@ -208,57 +229,31 @@ const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [payLoading, setPayLoading] = useState(false);
-
-  // Get user email from localStorage token (decoded)
-  const getEmail = () => {
-    const token = localStorage.getItem('token');
-    if (!token) return null;
-    try {
-      return JSON.parse(atob(token.split('.')[1])).email;
-    } catch {
-      return null;
-    }
-  };
+  const { user } = useAuth();
+  const axiosSecure = UseAxiosSecure();
 
   useEffect(() => {
-    const email = getEmail();
-    const token = localStorage.getItem('token');
-    if (!email || !token) {
+    if (!user?.email) {
       setLoading(false);
       return;
     }
-
-    fetch(`${import.meta.env.VITE_API_URL}/bookings/${email}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(data => {
-        setBookings(Array.isArray(data) ? data : []);
-        setLoading(false);
+    axiosSecure
+      .get(`/bookings/${user.email}`)
+      .then(res => {
+        setBookings(Array.isArray(res.data) ? res.data : []);
       })
-      .catch(() => setLoading(false));
-  }, []);
+      .catch(() => setBookings([]))
+      .finally(() => setLoading(false));
+  }, [user?.email]);
 
   const handlePayNow = async booking => {
     setPayLoading(true);
-    const token = localStorage.getItem('token');
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/create-checkout-session`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            ticketId: booking.ticketId,
-            quantity: booking.quantity || booking.bookingQuantity || 1,
-          }),
-        },
-      );
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      const res = await axiosSecure.post('/create-checkout-session', {
+        ticketId: booking.ticketId,
+        quantity: booking.quantity || booking.bookingQuantity || 1,
+      });
+      if (res.data?.url) window.location.href = res.data.url;
     } catch (err) {
       console.error('Payment failed:', err);
     } finally {

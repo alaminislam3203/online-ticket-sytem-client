@@ -1,5 +1,5 @@
 import React from 'react';
-import Navber from '../Components/Navber';
+import Navbar from '../Components/Navbar';
 import { Outlet } from 'react-router';
 import Footer from '../Components/Footer';
 
@@ -16,7 +16,7 @@ const Root = () => {
         }}
       />
 
-      <Navber />
+      <Navbar />
 
       <main className="relative z-10 flex-1 w-full max-w-8xl mx-auto px-4 pt-20 lg:pt-16 pb-20 lg:pb-0">
         <Outlet />

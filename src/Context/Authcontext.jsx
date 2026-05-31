@@ -20,7 +20,6 @@ const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Token থেকে user restore করা (page refresh এর পরেও role থাকবে)
   const getUserFromToken = () => {
     const token = localStorage.getItem('token');
     if (!token) return null;
