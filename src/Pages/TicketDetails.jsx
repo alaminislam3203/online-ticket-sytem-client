@@ -176,15 +176,16 @@ const TicketDetails = () => {
     try {
       const res = await axiosSecure.post('/create-checkout-session', {
         ticketId: ticket._id,
-        email: user.email,
-        price: ticket.price,
-        title: ticket.title,
+        quantity: 1,
       });
       if (res.data?.url) window.location.href = res.data.url;
-    } catch {
+    } catch (err) {
       Swal.fire({
         title: 'Payment Error',
-        text: 'Could not initiate payment. Please try again.',
+        text:
+          err?.response?.data?.message ||
+          err?.response?.data?.error ||
+          'Could not initiate payment. Please try again.',
         icon: 'error',
         background: '#0f172a',
         color: '#f8fafc',
@@ -194,7 +195,6 @@ const TicketDetails = () => {
       setBooking(false);
     }
   };
-
   const soldOut = ticket?.quantity === 0;
   const bookable = ticket ? isBookable(ticket.departureDate) : false;
   const daysUntil = ticket ? getDaysUntil(ticket.departureDate) : null;

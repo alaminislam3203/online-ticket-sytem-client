@@ -16,7 +16,7 @@ const Success = () => {
 
     const run = async () => {
       try {
-        // 1. Confirm booking (reduce ticket quantity + save booking)
+        // confirm-booking + transaction দুটোই একসাথে
         const bookingRes = await fetch(
           `${import.meta.env.VITE_API_URL}/api/confirm-booking`,
           {
@@ -26,14 +26,10 @@ const Success = () => {
           },
         );
 
-        // 2. Save transaction record
-        await fetch(`${import.meta.env.VITE_API_URL}/save-transaction`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId }),
-        });
+        const data = await bookingRes.json();
 
-        if (bookingRes.ok) {
+        // Already saved মানেও success
+        if (bookingRes.ok || data?.message === 'Already saved') {
           setStatus('success');
         } else {
           setStatus('error');

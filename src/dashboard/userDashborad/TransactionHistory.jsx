@@ -1,37 +1,26 @@
 import { useEffect, useState } from 'react';
+import UseAxiosSecure from '../../hooks/UseAxiosSecure';
+import { useAuth } from '../../Context/AuthContext';
 
 const TransactionHistory = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const getEmail = () => {
-    const token = localStorage.getItem('token');
-    if (!token) return null;
-    try {
-      return JSON.parse(atob(token.split('.')[1])).email;
-    } catch {
-      return null;
-    }
-  };
+  const { user } = useAuth();
+  const axiosSecure = UseAxiosSecure();
 
   useEffect(() => {
-    const email = getEmail();
-    const token = localStorage.getItem('token');
-    if (!email || !token) {
+    if (!user?.email) {
       setLoading(false);
       return;
     }
-
-    fetch(`${import.meta.env.VITE_API_URL}/transactions/${email}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(data => {
-        setTransactions(Array.isArray(data) ? data : []);
-        setLoading(false);
+    axiosSecure
+      .get(`/transactions/${user.email}`)
+      .then(res => {
+        setTransactions(Array.isArray(res.data) ? res.data : []);
       })
-      .catch(() => setLoading(false));
-  }, []);
+      .catch(() => setTransactions([]))
+      .finally(() => setLoading(false));
+  }, [user?.email]);
 
   if (loading) {
     return (
