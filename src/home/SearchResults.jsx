@@ -80,7 +80,7 @@ const SearchResults = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* TOP */}
         <div className="bg-blue-950 text-white rounded-3xl p-6 mb-8">
@@ -113,7 +113,7 @@ const SearchResults = () => {
           </div>
         ) : tickets.length === 0 ? (
           // NO DATA
-          <div className="bg-white rounded-3xl p-12 text-center shadow">
+          <div className=" rounded-3xl p-12 text-center shadow">
             <h2 className="text-4xl font-bold text-red-500">No Bus Found</h2>
 
             <p className="text-slate-500 mt-3">

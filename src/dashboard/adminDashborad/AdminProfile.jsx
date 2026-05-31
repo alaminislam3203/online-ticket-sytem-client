@@ -1,11 +1,11 @@
-import { useContext } from "react";
-import { AuthContext } from "../../Context/AuthContext";
+import { useContext } from 'react';
+import { AuthContext } from '../../Context/AuthContext';
 import {
   FaEnvelope,
   FaUserShield,
   FaPhoneAlt,
   FaMapMarkerAlt,
-} from "react-icons/fa";
+} from 'react-icons/fa';
 
 const AdminProfile = () => {
   const { user } = useContext(AuthContext);
@@ -22,7 +22,7 @@ const AdminProfile = () => {
           <div className="relative z-10 w-fit mx-auto">
             {/* Image */}
             <img
-              src={user?.photoURL || "https://i.ibb.co/4pDNDk1/avatar.png"}
+              src={user?.photoURL || 'https://i.ibb.co/4pDNDk1/avatar.png'}
               alt="Admin"
               className="w-40 h-40 rounded-full border-4 border-white shadow-2xl object-cover"
             />

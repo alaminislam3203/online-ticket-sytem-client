@@ -1,209 +1,214 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
-import Swal from 'sweetalert2';
+
+const statusConfig = {
+  pending: {
+    label: 'Pending',
+    bg: 'rgba(234,179,8,0.12)',
+    color: '#facc15',
+    border: 'rgba(234,179,8,0.3)',
+  },
+  approved: {
+    label: 'Approved',
+    bg: 'rgba(34,197,94,0.12)',
+    color: '#4ade80',
+    border: 'rgba(34,197,94,0.3)',
+  },
+  rejected: {
+    label: 'Rejected',
+    bg: 'rgba(239,68,68,0.12)',
+    color: '#f87171',
+    border: 'rgba(239,68,68,0.3)',
+  },
+};
 
 const ManageTickets = () => {
   const [tickets, setTickets] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [actionId, setActionId] = useState(null);
 
-  const itemsPerPage = 10;
-
-  // Fetch Tickets
-  const fetchTickets = async () => {
-    try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/tickets`,
-      );
-
-      setTickets(res.data || []);
-    } catch (error) {
-      console.log(error);
-    }
+  const token = localStorage.getItem('token');
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
   };
 
   useEffect(() => {
-    fetchTickets();
+    fetch(`${import.meta.env.VITE_API_URL}/api/tickets`, { headers })
+      .then(r => r.json())
+      .then(data => {
+        // /api/tickets returns { tickets, total } when paginated — handle both
+        const list = Array.isArray(data) ? data : data.tickets || [];
+        setTickets(list);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
 
-  // Handle Status
-  const handleStatus = async (id, status) => {
+  const updateStatus = async (id, status) => {
+    setActionId(id + status);
     try {
-      await axios.patch(
+      const res = await fetch(
         `${import.meta.env.VITE_API_URL}/api/tickets/status/${id}`,
         {
-          status,
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ status }),
         },
       );
-
-      Swal.fire({
-        icon: 'success',
-        title: `Ticket ${status}`,
-        timer: 1500,
-        showConfirmButton: false,
-      });
-
-      fetchTickets();
-    } catch (error) {
-      console.log(error);
+      if (res.ok)
+        setTickets(prev =>
+          prev.map(t =>
+            t._id === id ? { ...t, verificationStatus: status } : t,
+          ),
+        );
+    } catch (e) {
+      console.error(e);
     }
+    setActionId(null);
   };
 
-  // Pagination Logic
-  const totalPages = Math.ceil(tickets.length / itemsPerPage);
-
-  const startIndex = (currentPage - 1) * itemsPerPage;
-
-  const currentTickets = tickets.slice(startIndex, startIndex + itemsPerPage);
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
 
   return (
-    <div className="p-4 md:p-8 min-h-screen bg-slate-100">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-5xl font-black text-slate-800">
-          Manage Tickets
-        </h1>
+    <div className="px-4 py-8">
+      <h2 className="text-lg font-bold text-white mb-6">Manage Tickets</h2>
 
-        <p className="text-slate-500 mt-2 font-medium">
-          Manage and verify all transport tickets easily.
-        </p>
-      </div>
-
-      {/* Table Card */}
-      <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-[900px] w-full">
-            {/* Head */}
-            <thead className="bg-slate-900 text-white">
-              <tr>
-                <th className="py-5 px-6 text-left">#</th>
-
-                <th className="py-5 px-6 text-left">Ticket Title</th>
-
-                <th className="py-5 px-6 text-left">Route</th>
-
-                <th className="py-5 px-6 text-left">Price</th>
-
-                <th className="py-5 px-6 text-left">Status</th>
-
-                <th className="py-5 px-6 text-left">Actions</th>
-              </tr>
-            </thead>
-
-            {/* Body */}
-            <tbody>
-              {currentTickets.map((ticket, index) => (
-                <tr
-                  key={ticket._id}
-                  className="border-b hover:bg-slate-50 transition duration-300"
-                >
-                  {/* Index */}
-                  <td className="py-5 px-6 font-bold text-slate-700">
-                    {startIndex + index + 1}
-                  </td>
-
-                  {/* Title */}
-                  <td className="py-5 px-6">
-                    <h2 className="font-bold text-slate-800">{ticket.title}</h2>
-                  </td>
-
-                  {/* Route */}
-                  <td className="py-5 px-6 text-slate-600 font-medium">
-                    {ticket.from} → {ticket.to}
-                  </td>
-
-                  {/* Price */}
-                  <td className="py-5 px-6">
-                    <span className="bg-emerald-100 text-emerald-700 px-4 py-2 rounded-full font-bold">
-                      ৳ {ticket.price}
-                    </span>
-                  </td>
-
-                  {/* Status */}
-                  <td className="py-5 px-6">
-                    <span
-                      className={`px-4 py-2 rounded-full text-sm font-bold ${
-                        ticket.verificationStatus === 'approved'
-                          ? 'bg-green-100 text-green-700'
-                          : ticket.verificationStatus === 'rejected'
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-yellow-100 text-yellow-700'
-                      }`}
-                    >
-                      {ticket.verificationStatus || 'pending'}
-                    </span>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="py-5 px-6">
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        onClick={() => handleStatus(ticket._id, 'approved')}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition"
-                      >
-                        Approve
-                      </button>
-
-                      <button
-                        onClick={() => handleStatus(ticket._id, 'rejected')}
-                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{ border: '0.5px solid #1e293b' }}
+      >
+        {/* Header */}
+        <div
+          className="grid grid-cols-12 px-5 py-3 text-[10px] font-semibold uppercase tracking-widest"
+          style={{
+            background: '#0f172a',
+            color: '#334155',
+            borderBottom: '0.5px solid #1e293b',
+          }}
+        >
+          <span className="col-span-4">Ticket</span>
+          <span className="col-span-2">Vendor</span>
+          <span className="col-span-2">Transport</span>
+          <span className="col-span-2">Status</span>
+          <span className="col-span-2 text-right">Actions</span>
         </div>
 
-        {/* Empty State */}
+        {/* Rows */}
+        {tickets.map((t, i) => {
+          const s = statusConfig[t.verificationStatus] || statusConfig.pending;
+          const busy = id => actionId === t._id + id;
+
+          return (
+            <div
+              key={t._id}
+              className="grid grid-cols-12 px-5 py-4 items-center"
+              style={{
+                background: i % 2 === 0 ? '#0a1020' : '#0f172a',
+                borderBottom:
+                  i < tickets.length - 1 ? '0.5px solid #1e293b' : 'none',
+              }}
+            >
+              {/* Ticket info */}
+              <div className="col-span-4 flex items-center gap-3">
+                {t.image && (
+                  <img
+                    src={t.image}
+                    alt={t.title}
+                    className="w-10 h-10 rounded-lg object-cover shrink-0"
+                  />
+                )}
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-white truncate">
+                    {t.title || '—'}
+                  </p>
+                  <p
+                    className="text-[10px] truncate"
+                    style={{ color: '#475569' }}
+                  >
+                    {t.from} → {t.to}
+                  </p>
+                </div>
+              </div>
+
+              {/* Vendor email */}
+              <div className="col-span-2">
+                <p
+                  className="text-[10px] truncate"
+                  style={{ color: '#64748b' }}
+                >
+                  {t.vendorEmail || '—'}
+                </p>
+              </div>
+
+              {/* Transport */}
+              <div className="col-span-2">
+                <p className="text-xs" style={{ color: '#94a3b8' }}>
+                  {t.busType || t.transportType || '—'}
+                </p>
+              </div>
+
+              {/* Status badge */}
+              <div className="col-span-2">
+                <span
+                  className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                  style={{
+                    background: s.bg,
+                    color: s.color,
+                    border: `0.5px solid ${s.border}`,
+                  }}
+                >
+                  {s.label}
+                </span>
+              </div>
+
+              {/* Buttons */}
+              <div className="col-span-2 flex items-center justify-end gap-2">
+                <button
+                  onClick={() => updateStatus(t._id, 'approved')}
+                  disabled={!!actionId || t.verificationStatus === 'approved'}
+                  className="px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  style={{
+                    background: 'rgba(34,197,94,0.12)',
+                    color: '#4ade80',
+                    border: '0.5px solid rgba(34,197,94,0.3)',
+                  }}
+                >
+                  {busy('approved') ? '…' : 'Approve'}
+                </button>
+                <button
+                  onClick={() => updateStatus(t._id, 'rejected')}
+                  disabled={!!actionId || t.verificationStatus === 'rejected'}
+                  className="px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  style={{
+                    background: 'rgba(239,68,68,0.12)',
+                    color: '#f87171',
+                    border: '0.5px solid rgba(239,68,68,0.3)',
+                  }}
+                >
+                  {busy('rejected') ? '…' : 'Reject'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+
         {tickets.length === 0 && (
-          <div className="py-16 text-center">
-            <h2 className="text-2xl font-bold text-slate-500">
-              No Tickets Found
-            </h2>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {tickets.length > 0 && (
-          <div className="flex justify-center items-center gap-3 flex-wrap p-6 border-t bg-slate-50">
-            {/* Prev */}
-            <button
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(currentPage - 1)}
-              className="px-5 py-2 rounded-xl bg-slate-800 text-white font-semibold disabled:opacity-40 hover:bg-slate-900 transition"
-            >
-              Prev
-            </button>
-
-            {/* Page Numbers */}
-            {[...Array(totalPages).keys()].map(num => (
-              <button
-                key={num}
-                onClick={() => setCurrentPage(num + 1)}
-                className={`w-11 h-11 rounded-xl font-bold transition ${
-                  currentPage === num + 1
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                {num + 1}
-              </button>
-            ))}
-
-            {/* Next */}
-            <button
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(currentPage + 1)}
-              className="px-5 py-2 rounded-xl bg-slate-800 text-white font-semibold disabled:opacity-40 hover:bg-slate-900 transition"
-            >
-              Next
-            </button>
+          <div className="py-16 text-center" style={{ background: '#0f172a' }}>
+            <p className="text-sm" style={{ color: '#475569' }}>
+              No tickets found.
+            </p>
           </div>
         )}
       </div>
+
+      <p className="text-xs mt-3 text-right" style={{ color: '#334155' }}>
+        {tickets.length} total ticket{tickets.length !== 1 ? 's' : ''}
+      </p>
     </div>
   );
 };

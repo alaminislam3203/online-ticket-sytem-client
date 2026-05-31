@@ -1,341 +1,238 @@
-import axios from 'axios';
-import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { useEffect, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router';
 
 const Success = () => {
-  const query = new URLSearchParams(useLocation().search);
-  const sessionId = query.get('session_id');
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [visible, setVisible] = useState(false);
+  const sessionId = searchParams.get('session_id');
+
+  const [status, setStatus] = useState('loading'); // loading | success | error
 
   useEffect(() => {
-    setTimeout(() => setVisible(true), 100);
-  }, []);
-
-  useEffect(() => {
-    if (sessionId) {
-      axios.post(`${import.meta.env.VITE_API_URL}/api/save-transaction`, {
-        sessionId,
-      });
-      axios.post(`${import.meta.env.VITE_API_URL}/api/confirm-booking`, {
-        sessionId,
-      });
+    if (!sessionId) {
+      setStatus('error');
+      return;
     }
+
+    const run = async () => {
+      try {
+        // 1. Confirm booking (reduce ticket quantity + save booking)
+        const bookingRes = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/confirm-booking`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId }),
+          },
+        );
+
+        // 2. Save transaction record
+        await fetch(`${import.meta.env.VITE_API_URL}/save-transaction`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+        });
+
+        if (bookingRes.ok) {
+          setStatus('success');
+        } else {
+          setStatus('error');
+        }
+      } catch {
+        setStatus('error');
+      }
+    };
+
+    run();
   }, [sessionId]);
 
   return (
-    <div style={styles.page}>
-      {/* Ambient blobs */}
-      <div style={styles.blob1} />
-      <div style={styles.blob2} />
-      <div style={styles.blob3} />
+    <div className="min-h-screen flex items-center justify-center px-4">
+      {status === 'loading' && (
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm" style={{ color: '#475569' }}>
+            Confirming your booking…
+          </p>
+        </div>
+      )}
 
-      {/* Floating particles */}
-      {[...Array(12)].map((_, i) => (
-        <div key={i} style={{ ...styles.particle, ...particleStyle(i) }} />
-      ))}
-
-      {/* Card */}
-      <div
-        style={{
-          ...styles.card,
-          opacity: visible ? 1 : 0,
-          transform: visible
-            ? 'translateY(0) scale(1)'
-            : 'translateY(32px) scale(0.97)',
-          transition:
-            'opacity 0.7s cubic-bezier(.16,1,.3,1), transform 0.7s cubic-bezier(.16,1,.3,1)',
-        }}
-      >
-        {/* Top glow strip */}
-        <div style={styles.topStrip} />
-
-        {/* Check icon */}
-        <div style={styles.iconWrap}>
+      {status === 'success' && (
+        <div
+          className="rounded-2xl p-10 max-w-md w-full text-center flex flex-col items-center gap-5"
+          style={{ background: '#0f172a', border: '0.5px solid #1e293b' }}
+        >
+          {/* Animated checkmark */}
           <div
+            className="w-20 h-20 rounded-full flex items-center justify-center"
             style={{
-              ...styles.iconRing,
-              animation: 'ringPulse 2.5s ease-in-out infinite',
+              background: 'rgba(34,197,94,0.12)',
+              border: '0.5px solid rgba(34,197,94,0.3)',
             }}
-          />
-          <div style={styles.iconInner}>
-            <svg width="38" height="38" viewBox="0 0 38 38" fill="none">
+          >
+            <svg
+              className="w-10 h-10"
+              viewBox="0 0 40 40"
+              fill="none"
+              style={{ color: '#4ade80' }}
+            >
               <path
-                d="M8 20L15.5 27.5L30 11"
-                stroke="#fff"
-                strokeWidth="3.2"
+                d="M10 21l7 7 13-14"
+                stroke="currentColor"
+                strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                strokeDasharray="40"
+                strokeDashoffset="0"
               />
             </svg>
           </div>
-        </div>
 
-        {/* Text */}
-        <p style={styles.eyebrow}>Transaction Complete</p>
-        <h1 style={styles.heading}>Payment Successful</h1>
-        <p style={styles.sub}>
-          Your booking has been confirmed and your ticket is on its way. A
-          confirmation has been sent to your email.
-        </p>
-
-        {/* Divider */}
-        <div style={styles.divider} />
-
-        {/* Session ID */}
-        {sessionId && (
-          <div style={styles.sessionBox}>
-            <span style={styles.sessionLabel}>Session ID</span>
-            <span style={styles.sessionId}>{sessionId}</span>
+          <div>
+            <h1 className="text-2xl font-bold text-white">
+              Payment Successful!
+            </h1>
+            <p className="text-sm mt-2" style={{ color: '#64748b' }}>
+              Your booking has been confirmed. Check your dashboard for details.
+            </p>
           </div>
-        )}
 
-        {/* Buttons */}
-        <div style={styles.btnRow}>
-          <button
-            style={styles.btnPrimary}
-            onClick={() => navigate('/dashboard/bookings')}
-            onMouseEnter={e =>
-              (e.currentTarget.style.transform = 'translateY(-2px)')
-            }
-            onMouseLeave={e =>
-              (e.currentTarget.style.transform = 'translateY(0)')
-            }
-          >
-            View My Bookings
-          </button>
-          <button
-            style={styles.btnSecondary}
-            onClick={() => navigate('/')}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = '#f1f5f9';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            Back to Home
-          </button>
+          {sessionId && (
+            <div
+              className="w-full px-4 py-3 rounded-xl text-left"
+              style={{ background: '#060d1a', border: '0.5px solid #1e293b' }}
+            >
+              <p
+                className="text-[10px] uppercase tracking-widest mb-1"
+                style={{ color: '#334155' }}
+              >
+                Session ID
+              </p>
+              <p
+                className="text-xs font-mono break-all"
+                style={{ color: '#475569' }}
+              >
+                {sessionId}
+              </p>
+            </div>
+          )}
+
+          <div className="flex gap-3 w-full">
+            <button
+              onClick={() => navigate('/dashboard/bookings')}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all duration-200"
+              style={{
+                background: 'linear-gradient(135deg,#2563eb,#1d4ed8)',
+                color: '#fff',
+                border: '0.5px solid rgba(59,130,246,0.4)',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              My Bookings
+            </button>
+            <button
+              onClick={() => navigate('/dashboard/history')}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all duration-200"
+              style={{
+                background: 'rgba(34,197,94,0.12)',
+                color: '#4ade80',
+                border: '0.5px solid rgba(34,197,94,0.3)',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              Transactions
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-        @keyframes ringPulse {
-          0%, 100% { transform: scale(1); opacity: 0.35; }
-          50% { transform: scale(1.18); opacity: 0.15; }
-        }
-        @keyframes floatUp {
-          0% { transform: translateY(0px) rotate(0deg); opacity: 0.7; }
-          100% { transform: translateY(-80px) rotate(20deg); opacity: 0; }
-        }
-      `}</style>
+      {status === 'error' && (
+        <div
+          className="rounded-2xl p-10 max-w-md w-full text-center flex flex-col items-center gap-5"
+          style={{ background: '#0f172a', border: '0.5px solid #1e293b' }}
+        >
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center"
+            style={{
+              background: 'rgba(239,68,68,0.12)',
+              border: '0.5px solid rgba(239,68,68,0.3)',
+            }}
+          >
+            <svg
+              className="w-10 h-10"
+              viewBox="0 0 40 40"
+              fill="none"
+              style={{ color: '#f87171' }}
+            >
+              <path
+                d="M12 12l16 16M28 12L12 28"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+
+          <div>
+            <h1 className="text-2xl font-bold text-white">
+              Something went wrong
+            </h1>
+            <p className="text-sm mt-2" style={{ color: '#64748b' }}>
+              We couldn't confirm your booking. Please contact support with your
+              session ID.
+            </p>
+          </div>
+
+          {sessionId && (
+            <div
+              className="w-full px-4 py-3 rounded-xl text-left"
+              style={{ background: '#060d1a', border: '0.5px solid #1e293b' }}
+            >
+              <p
+                className="text-[10px] uppercase tracking-widest mb-1"
+                style={{ color: '#334155' }}
+              >
+                Session ID
+              </p>
+              <p
+                className="text-xs font-mono break-all"
+                style={{ color: '#475569' }}
+              >
+                {sessionId}
+              </p>
+            </div>
+          )}
+
+          <div className="flex gap-3 w-full">
+            <button
+              onClick={() => navigate('/')}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold"
+              style={{
+                background: '#1e293b',
+                color: '#94a3b8',
+                border: '0.5px solid #334155',
+              }}
+            >
+              Go Home
+            </button>
+            <button
+              onClick={() => navigate('/dashboard/bookings')}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold"
+              style={{
+                background: 'rgba(59,130,246,0.12)',
+                color: '#60a5fa',
+                border: '0.5px solid rgba(59,130,246,0.3)',
+              }}
+            >
+              My Bookings
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
-
-function particleStyle(i) {
-  const left = [8, 15, 22, 35, 48, 55, 62, 70, 78, 85, 90, 5][i];
-  const delay = [0, 0.8, 1.6, 0.4, 1.2, 2, 0.2, 1.4, 0.6, 1.8, 1, 2.2][i];
-  const size = [4, 6, 3, 5, 4, 7, 3, 5, 6, 4, 3, 5][i];
-  return {
-    left: `${left}%`,
-    bottom: `${10 + (i % 4) * 8}%`,
-    width: size,
-    height: size,
-    animationDelay: `${delay}s`,
-    animationDuration: `${3 + (i % 3)}s`,
-  };
-}
-
-const styles = {
-  page: {
-    minHeight: '100vh',
-    background:
-      'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontFamily: "'Sora', sans-serif",
-    position: 'relative',
-    overflow: 'hidden',
-    padding: '24px',
-  },
-  blob1: {
-    position: 'absolute',
-    top: '-10%',
-    left: '-5%',
-    width: 480,
-    height: 480,
-    borderRadius: '50%',
-    background:
-      'radial-gradient(circle, rgba(251,191,36,0.12) 0%, transparent 70%)',
-    pointerEvents: 'none',
-  },
-  blob2: {
-    position: 'absolute',
-    bottom: '-10%',
-    right: '-5%',
-    width: 400,
-    height: 400,
-    borderRadius: '50%',
-    background:
-      'radial-gradient(circle, rgba(16,185,129,0.10) 0%, transparent 70%)',
-    pointerEvents: 'none',
-  },
-  blob3: {
-    position: 'absolute',
-    top: '40%',
-    left: '40%',
-    width: 300,
-    height: 300,
-    borderRadius: '50%',
-    background:
-      'radial-gradient(circle, rgba(251,191,36,0.06) 0%, transparent 70%)',
-    pointerEvents: 'none',
-  },
-  particle: {
-    position: 'absolute',
-    borderRadius: '50%',
-    background: 'rgba(251,191,36,0.5)',
-    animation: 'floatUp 3s ease-in-out infinite',
-    pointerEvents: 'none',
-  },
-  card: {
-    position: 'relative',
-    background: 'rgba(255,255,255,0.04)',
-    backdropFilter: 'blur(24px)',
-    WebkitBackdropFilter: 'blur(24px)',
-    border: '1px solid rgba(255,255,255,0.09)',
-    borderRadius: 28,
-    padding: '52px 44px 44px',
-    maxWidth: 480,
-    width: '100%',
-    textAlign: 'center',
-    boxShadow:
-      '0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
-    zIndex: 10,
-  },
-  topStrip: {
-    position: 'absolute',
-    top: 0,
-    left: '20%',
-    right: '20%',
-    height: 3,
-    background:
-      'linear-gradient(90deg, transparent, #fbbf24, #10b981, transparent)',
-    borderRadius: '0 0 4px 4px',
-  },
-  iconWrap: {
-    position: 'relative',
-    width: 80,
-    height: 80,
-    margin: '0 auto 28px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconRing: {
-    position: 'absolute',
-    inset: -8,
-    borderRadius: '50%',
-    background:
-      'radial-gradient(circle, rgba(16,185,129,0.35) 0%, transparent 70%)',
-  },
-  iconInner: {
-    width: 80,
-    height: 80,
-    borderRadius: '50%',
-    background: 'linear-gradient(135deg, #10b981, #059669)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 8px 32px rgba(16,185,129,0.45)',
-  },
-  eyebrow: {
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: '0.18em',
-    textTransform: 'uppercase',
-    color: '#10b981',
-    margin: '0 0 10px',
-  },
-  heading: {
-    fontSize: 32,
-    fontWeight: 700,
-    color: '#f8fafc',
-    margin: '0 0 14px',
-    lineHeight: 1.15,
-  },
-  sub: {
-    fontSize: 14.5,
-    color: '#94a3b8',
-    lineHeight: 1.7,
-    margin: '0 0 28px',
-  },
-  divider: {
-    height: 1,
-    background:
-      'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)',
-    margin: '0 0 24px',
-  },
-  sessionBox: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: 12,
-    padding: '14px 18px',
-    margin: '0 0 28px',
-    textAlign: 'left',
-  },
-  sessionLabel: {
-    fontSize: 10,
-    fontWeight: 600,
-    letterSpacing: '0.14em',
-    textTransform: 'uppercase',
-    color: '#64748b',
-  },
-  sessionId: {
-    fontFamily: "'DM Mono', monospace",
-    fontSize: 12,
-    color: '#fbbf24',
-    wordBreak: 'break-all',
-    lineHeight: 1.5,
-  },
-  btnRow: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 12,
-  },
-  btnPrimary: {
-    padding: '14px 24px',
-    background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-    color: '#0f172a',
-    fontFamily: "'Sora', sans-serif",
-    fontSize: 14,
-    fontWeight: 700,
-    border: 'none',
-    borderRadius: 14,
-    cursor: 'pointer',
-    boxShadow: '0 8px 24px rgba(251,191,36,0.3)',
-    transition: 'transform 0.2s, box-shadow 0.2s',
-  },
-  btnSecondary: {
-    padding: '14px 24px',
-    background: 'transparent',
-    color: '#94a3b8',
-    fontFamily: "'Sora', sans-serif",
-    fontSize: 14,
-    fontWeight: 500,
-    border: '1px solid rgba(255,255,255,0.09)',
-    borderRadius: 14,
-    cursor: 'pointer',
-    transition: 'background 0.2s, transform 0.2s',
-  },
 };
 
 export default Success;

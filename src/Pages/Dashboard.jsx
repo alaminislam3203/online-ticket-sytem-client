@@ -1,10 +1,10 @@
-import React, { useContext } from "react";
-import { FaBars, FaUserShield } from "react-icons/fa";
-import { Outlet } from "react-router";
-import { AuthContext } from "../Context/AuthContext"; // আপনার পাথের সাথে মিলিয়ে নিন
-import ManuAdmin from "../dashboard/adminDashborad/ManuAdmin";
-import ManuVendor from "../dashboard/vendorDashboard/ManuVendor";
-import ManuUser from "../dashboard/userDashborad/ManuUser";
+import React, { useContext } from 'react';
+import { FaBars, FaUserShield } from 'react-icons/fa';
+import { Outlet } from 'react-router';
+import { AuthContext } from '../Context/AuthContext'; // আপনার পাথের সাথে মিলিয়ে নিন
+import ManuAdmin from '../dashboard/adminDashborad/ManuAdmin';
+import ManuVendor from '../dashboard/vendorDashboard/ManuVendor';
+import ManuUser from '../dashboard/userDashborad/ManuUser';
 
 const Dashboard = () => {
   const { role, roleLoading } = useContext(AuthContext);
@@ -29,7 +29,7 @@ const Dashboard = () => {
         {/* MAIN CONTENT */}
         <div className="drawer-content flex flex-col flex-1">
           {/* Navbar */}
-          <div className="w-full navbar bg-[#081028] text-white flex justify-between px-4">
+          <div className="w-full navbar  text-white flex justify-between px-4">
             <label
               htmlFor="dashboard-drawer"
               className="btn btn-square btn-ghost lg:hidden"
@@ -72,15 +72,15 @@ const Dashboard = () => {
         {/* SIDEBAR */}
         <div className="drawer-side">
           <label htmlFor="dashboard-drawer" className="drawer-overlay"></label>
-          <div className="menu p-4 w-80 min-h-full bg-[#081028] text-white">
+          <div className="menu p-4 w-80 min-h-full">
             <h2 className="text-xl font-bold mb-6 mt-2 px-2 capitalize">
               {role} Dashboard
             </h2>
 
             {/* ডাইনামিক মেনু রেন্ডারিং */}
-            {role === "admin" && <ManuAdmin />}
-            {role === "vendor" && <ManuVendor />}
-            {role === "user" && <ManuUser />}
+            {role === 'admin' && <ManuAdmin />}
+            {role === 'vendor' && <ManuVendor />}
+            {role === 'user' && <ManuUser />}
           </div>
         </div>
       </div>

@@ -61,7 +61,7 @@ const Login = () => {
         console.log('Navigating to vendor dashboard');
         navigate('/dashboard/vendor-dashboard/manu-vendor');
       } else {
-        navigate('/dashboard/user-home');
+        navigate('/dashboard');
       }
     } catch (err) {
       console.error('REAL ERROR:', err);
