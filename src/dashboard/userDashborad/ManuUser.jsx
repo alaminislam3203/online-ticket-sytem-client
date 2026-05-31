@@ -4,7 +4,7 @@ import { FiChevronRight } from 'react-icons/fi';
 
 const navItems = [
   {
-    to: '/dashboard/profile',
+    to: '/dashboard/user-profile',
     icon: <FaUser size={13} />,
     label: 'My Profile',
     desc: 'Account & settings',

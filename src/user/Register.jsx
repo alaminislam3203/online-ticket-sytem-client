@@ -1,9 +1,9 @@
-import { useContext } from "react";
-import { Link, useNavigate } from "react-router";
-import Swal from "sweetalert2";
-import UseAxiosSecure from "../hooks/UseAxiosSecure";
-import registerImg from "../assets/register (7).png";
-import { AuthContext } from "../Context/AuthContext";
+import { useContext } from 'react';
+import { Link, useNavigate } from 'react-router';
+import Swal from 'sweetalert2';
+import UseAxiosSecure from '../hooks/UseAxiosSecure';
+import registerImg from '../assets/register (7).png';
+import { AuthContext } from '../Context/AuthContext';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -20,39 +20,39 @@ const Register = () => {
       const userCredential = await googleLogin();
 
       // backend save
-      await axiosSecure.post("/api/register", {
+      await axiosSecure.post('/api/register', {
         name: userCredential.user.displayName,
         email: userCredential.user.email,
         photoURL: userCredential.user.photoURL,
       });
 
       Swal.fire({
-        icon: "success",
-        title: "Google Login Successful",
+        icon: 'success',
+        title: 'Google Login Successful',
         timer: 2000,
         showConfirmButton: false,
       });
 
-      navigate("/dashboard");
+      navigate('/dashboard');
     } catch (err) {
       console.error(err);
       Swal.fire({
-        icon: "error",
-        title: "Google Login Failed",
+        icon: 'error',
+        title: 'Google Login Failed',
         text: err.message,
       });
     }
   };
 
   // ------------------- Image Upload -------------------
-  const handleImageUpload = async (file) => {
+  const handleImageUpload = async file => {
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append('image', file);
 
     const res = await fetch(
       `https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_image_host_key}`,
       {
-        method: "POST",
+        method: 'POST',
         body: formData,
       },
     );
@@ -62,7 +62,7 @@ const Register = () => {
   };
 
   // ------------------- Register -------------------
-  const handleRegister = async (e) => {
+  const handleRegister = async e => {
     e.preventDefault();
 
     const name = e.target.name.value;
@@ -71,7 +71,7 @@ const Register = () => {
     const photoFile = e.target.photo.files[0];
 
     if (!photoFile) {
-      return Swal.fire("Please select a photo");
+      return Swal.fire('Please select a photo');
     }
 
     try {
@@ -88,27 +88,27 @@ const Register = () => {
       });
 
       // 4️⃣ Save to backend
-      await axiosSecure.post("/api/register", {
+      await axiosSecure.post('/api/register', {
         name,
         email,
         password,
-        role: "user",
+        role: 'user',
         photoURL,
       });
 
       Swal.fire({
-        icon: "success",
-        title: "Registered Successfully",
+        icon: 'success',
+        title: 'Registered Successfully',
         timer: 2000,
         showConfirmButton: false,
       });
 
-      navigate("/dashboard");
+      navigate('/dashboard');
     } catch (err) {
       console.error(err);
       Swal.fire({
-        icon: "error",
-        title: "Registration Failed",
+        icon: 'error',
+        title: 'Registration Failed',
         text: err.response?.data?.message || err.message,
       });
     }
@@ -167,7 +167,7 @@ const Register = () => {
           Register with Google
         </button>
         <p className="text-center mt-4">
-          Already have an account?{" "}
+          Already have an account?{' '}
           <Link to="/login" className="text-blue-600">
             Login
           </Link>

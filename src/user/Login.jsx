@@ -1,5 +1,4 @@
 import { useContext } from 'react';
-
 import { useForm } from 'react-hook-form';
 import loginImg from '../assets/Login.jpg';
 import { Link, useLocation, useNavigate } from 'react-router';
@@ -21,29 +20,34 @@ const Login = () => {
     formState: { errors },
   } = useForm();
 
-  // ------------------- Handle Login -------------------
+  // ── Role based redirect ──────────────────────────────────
+  const redirectByRole = role => {
+    if (role === 'admin') return navigate('/');
+    if (role === 'vendor') return navigate('/');
+    return navigate('/');
+  };
+
+  // ── Email/Password Login ─────────────────────────────────
   const handleLogin = async data => {
     setLoading(true);
     try {
-      const userCredential = await signInUser(data.email, data.password);
-      console.log('Firebase login successful:', userCredential);
+      // 1. Firebase auth
+      await signInUser(data.email, data.password);
+
+      // 2. Backend JWT
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/login`,
         data,
       );
-      console.log('API Success:', res.data);
 
-      localStorage.setItem('access-token', res.data.token);
-
-      console.log('Before setUser');
+      // FIX: 'access-token' → 'token' (সব component এ 'token' দিয়ে read হয়)
+      localStorage.setItem('token', res.data.token);
 
       setUser({
         role: res.data.role,
         email: data.email,
         token: res.data.token,
       });
-
-      console.log('After setUser');
 
       Swal.fire({
         icon: 'success',
@@ -52,58 +56,60 @@ const Login = () => {
         showConfirmButton: false,
       });
 
-      console.log('Role:', res.data.role);
-      setLoading(false);
-      if (res.data.role === 'admin') {
-        console.log('Navigating to admin dashboard');
-        navigate('/dashboard/manu-admin');
-      } else if (res.data.role === 'vendor') {
-        console.log('Navigating to vendor dashboard');
-        navigate('/dashboard/vendor-dashboard/manu-vendor');
-      } else {
-        navigate('/dashboard');
-      }
+      redirectByRole(res.data.role);
     } catch (err) {
-      console.error('REAL ERROR:', err);
+      console.error('Login error:', err);
 
       let errorMessage = 'Something went wrong!';
-
       if (err.code === 'auth/invalid-credential') {
-        errorMessage = 'ভুল ইমেইল অথবা পাসওয়ার্ড দিয়েছেন। আবার চেষ্টা করুন।';
+        errorMessage = 'Invalid email or password.';
       } else if (err.code === 'auth/user-not-found') {
-        errorMessage = 'এই ইমেইলে কোনো অ্যাকাউন্ট নেই।';
+        errorMessage = 'No account found with this email.';
       } else if (err.code === 'auth/wrong-password') {
-        errorMessage = 'আপনার পাসওয়ার্ডটি ভুল।';
+        errorMessage = 'Incorrect password.';
       }
+
       Swal.fire({
         icon: 'error',
         title: 'Login Failed',
         text: err.response?.data?.message || errorMessage,
       });
+    } finally {
       setLoading(false);
     }
   };
 
-  // ------------------- Google Login -------------------
+  // ── Google Login ─────────────────────────────────────────
   const handleGoogleLogin = async () => {
     try {
       const userCredential = await googleLogin();
+      const email = userCredential.user.email;
+      const name = userCredential.user.displayName;
+
+      // Backend এ user save + JWT token নাও
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/google-login`,
+        { email, name },
+      );
+
+      // FIX: token save করা হচ্ছে
+      localStorage.setItem('token', res.data.token);
 
       setUser({
-        role: 'user',
-        email: userCredential.user.email,
-        token: null,
+        role: res.data.role,
+        email: email,
+        token: res.data.token,
       });
 
       Swal.fire({
         icon: 'success',
         title: 'Google Login Successful',
-        text: `Welcome ${userCredential.user.email}`,
+        text: `Welcome ${name || email}`,
         timer: 2000,
         showConfirmButton: false,
       });
 
-      navigate(from);
+      redirectByRole(res.data.role);
     } catch (err) {
       console.error('Google login failed:', err);
       Swal.fire({
@@ -114,11 +120,10 @@ const Login = () => {
     }
   };
 
-  // ------------------- Forgot Password -------------------
+  // ── Forgot Password ──────────────────────────────────────
   const handleForgot = async () => {
     const email = watch('email');
     if (!email) return Swal.fire('Enter your email first');
-
     try {
       await resetPassword(email);
       Swal.fire({
@@ -135,11 +140,12 @@ const Login = () => {
       });
     }
   };
+
   return (
     <div className="min-h-screen grid md:grid-cols-2 items-center">
       <img src={loginImg} className="hidden md:block h-full object-cover" />
 
-      <div className="p-8 max-w-md mx-auto">
+      <div className="p-8 max-w-md mx-auto w-full">
         <h2 className="text-3xl font-bold mb-4">Login</h2>
 
         <form onSubmit={handleSubmit(handleLogin)}>
@@ -148,29 +154,33 @@ const Login = () => {
             placeholder="Email"
             className="input input-bordered w-full mb-3"
           />
-          {errors.name?.type === 'required' && (
-            <p className="text-red-500"> email is required </p>
+          {errors.email?.type === 'required' && (
+            <p className="text-red-500 mb-2">Email is required</p>
           )}
+
           <input
-            {...register('password', { required: true })}
+            {...register('password', { required: true, minLength: 6 })}
             type="password"
             placeholder="Password"
             className="input input-bordered w-full mb-2"
           />
           {errors.password?.type === 'required' && (
-            <p className="text-red-500"> Password is required </p>
+            <p className="text-red-500">Password is required</p>
           )}
           {errors.password?.type === 'minLength' && (
-            <p className="text-red-500"> Password is required </p>
+            <p className="text-red-500">
+              Password must be at least 6 characters
+            </p>
           )}
+
           <p
             onClick={handleForgot}
-            className="text-sm text-blue-600 cursor-pointer"
+            className="text-sm text-blue-600 cursor-pointer mb-4"
           >
             Forgot password?
           </p>
 
-          <button className="btn btn-primary w-full mt-4">Login</button>
+          <button className="btn btn-primary w-full">Login</button>
         </form>
 
         <button

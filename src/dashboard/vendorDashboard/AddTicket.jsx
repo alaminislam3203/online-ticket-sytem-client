@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 
 const TRANSPORT_TYPES = ['Bus', 'Train', 'Launch', 'Plane'];
@@ -17,17 +17,18 @@ const AddTicket = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
 
-  // Decode vendor info from token
-  const getVendorInfo = () => {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return { email: payload.email || '', name: payload.name || '' };
-    } catch {
-      return { email: '', name: '' };
-    }
-  };
-  const vendor = getVendorInfo();
+  const [vendor, setVendor] = useState({ email: '', name: '' });
 
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/api/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(data =>
+        setVendor({ email: data.email || '', name: data.name || '' }),
+      )
+      .catch(() => {});
+  }, []);
   const [form, setForm] = useState({
     title: '',
     from: '',
@@ -288,7 +289,7 @@ const AddTicket = () => {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelClass} style={labelStyle}>
-              Price (per unit $)
+              Price (per unit ৳)
             </label>
             <input
               type="number"

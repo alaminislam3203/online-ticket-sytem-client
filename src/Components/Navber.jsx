@@ -434,7 +434,21 @@ const Navbar = () => {
                           <FiLayout size={15} /> Dashboard
                         </NavLink>
                         <NavLink
-                          to="/dashboard/profile"
+                          to={(() => {
+                            const token = localStorage.getItem('token');
+                            try {
+                              const role = JSON.parse(
+                                atob(token.split('.')[1]),
+                              ).role;
+                              if (role === 'admin')
+                                return '/dashboard/manu-admin/admin-profile';
+                              if (role === 'vendor')
+                                return '/dashboard/vendor-dashboard/vendor-profile';
+                              return '/dashboard/user-profile';
+                            } catch {
+                              return '/dashboard/user-profile';
+                            }
+                          })()}
                           onClick={() => setProfileOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors"
                           style={{ color: '#94a3b8' }}

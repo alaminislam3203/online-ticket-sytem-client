@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   FaUser,
   FaBus,
-  FaMapMarkerAlt,
   FaMoneyBillWave,
   FaCheckCircle,
   FaTimesCircle,
+  FaCalendarAlt,
+  FaArrowRight,
 } from 'react-icons/fa';
-import axios from 'axios';
+import { FiChevronLeft, FiChevronRight, FiInbox } from 'react-icons/fi';
+import UseAxiosSecure from '../../hooks/UseAxiosSecure';
 import Swal from 'sweetalert2';
 
 const Toast = Swal.mixin({
@@ -15,232 +17,419 @@ const Toast = Swal.mixin({
   position: 'top-end',
   showConfirmButton: false,
   timer: 2000,
+  background: '#0f172a',
+  color: '#f8fafc',
 });
 
-const RequestedBookings = () => {
-  const [booking, setBooking] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
+const statusConfig = s => {
+  const v = s?.toLowerCase();
+  if (v === 'approved')
+    return {
+      bg: 'rgba(16,185,129,0.12)',
+      color: '#34d399',
+      border: 'rgba(16,185,129,0.3)',
+      label: 'Approved',
+    };
+  if (v === 'rejected')
+    return {
+      bg: 'rgba(239,68,68,0.12)',
+      color: '#f87171',
+      border: 'rgba(239,68,68,0.3)',
+      label: 'Rejected',
+    };
+  if (v === 'paid')
+    return {
+      bg: 'rgba(59,130,246,0.12)',
+      color: '#60a5fa',
+      border: 'rgba(59,130,246,0.3)',
+      label: 'Paid',
+    };
+  return {
+    bg: 'rgba(245,158,11,0.12)',
+    color: '#fbbf24',
+    border: 'rgba(245,158,11,0.3)',
+    label: 'Pending',
+  };
+};
 
-  const itemsPerPage = 10;
+const formatDate = d => {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const ITEMS = 10;
+
+// ── Skeleton row ─────────────────────────────────────────────────
+const SkeletonRow = () => (
+  <div
+    className="grid grid-cols-6 gap-4 px-6 py-4 animate-pulse"
+    style={{ borderBottom: '0.5px solid #1e293b' }}
+  >
+    {[1, 2, 3, 4, 5, 6].map(i => (
+      <div
+        key={i}
+        style={{
+          height: 12,
+          background: '#1e293b',
+          borderRadius: 6,
+          width: i === 6 ? '70%' : '85%',
+        }}
+      />
+    ))}
+  </div>
+);
+
+const RequestedBookings = () => {
+  const axiosSecure = UseAxiosSecure();
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
-    axios
-      .get(`${import.meta.env.VITE_API_URL}/api/requested-booking`)
-      .then(res => setBooking(res.data || []))
-      .catch(err => console.log(err));
+    setLoading(true);
+    axiosSecure
+      .get('/api/requested-booking')
+      .then(res => setBookings(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setBookings([]))
+      .finally(() => setLoading(false));
   }, []);
 
-  // pagination safe fix
-  const totalPages = Math.max(1, Math.ceil(booking.length / itemsPerPage));
-
-  const indexOfLast = currentPage * itemsPerPage;
-  const indexOfFirst = indexOfLast - itemsPerPage;
-  const currentBookings = booking.slice(indexOfFirst, indexOfLast);
-
-  // normalize status (IMPORTANT FIX)
-  const getStatusStyle = status => {
-    const s = status?.toLowerCase();
-
-    if (s === 'pending') return 'bg-yellow-50 text-yellow-600';
-    if (s === 'approved') return 'bg-green-50 text-green-600';
-    if (s === 'rejected') return 'bg-red-50 text-red-600';
-    if (s === 'paid') return 'bg-blue-50 text-blue-600';
-
-    return 'bg-slate-100 text-slate-600';
-  };
+  const totalPages = Math.max(1, Math.ceil(bookings.length / ITEMS));
+  const current = bookings.slice((page - 1) * ITEMS, page * ITEMS);
 
   const handleApprove = async id => {
     try {
-      await axios.patch(
-        `${import.meta.env.VITE_API_URL}/api/requested-booking/approve/${id}`,
-      );
-
-      setBooking(prev =>
+      await axiosSecure.patch(`/api/requested-booking/approve/${id}`);
+      setBookings(prev =>
         prev.map(b => (b._id === id ? { ...b, status: 'Approved' } : b)),
       );
-
-      Toast.fire({ icon: 'success', title: 'Approved' });
+      Toast.fire({ icon: 'success', title: 'Booking approved' });
     } catch {
-      Toast.fire({ icon: 'error', title: 'Failed' });
+      Toast.fire({ icon: 'error', title: 'Failed to approve' });
     }
   };
 
   const handleReject = async id => {
     try {
-      await axios.patch(
-        `${import.meta.env.VITE_API_URL}/api/requested-booking/reject/${id}`,
-      );
-
-      setBooking(prev =>
+      await axiosSecure.patch(`/api/requested-booking/reject/${id}`);
+      setBookings(prev =>
         prev.map(b => (b._id === id ? { ...b, status: 'Rejected' } : b)),
       );
-
-      Toast.fire({ icon: 'success', title: 'Rejected' });
+      Toast.fire({ icon: 'success', title: 'Booking rejected' });
     } catch {
-      Toast.fire({ icon: 'error', title: 'Failed' });
+      Toast.fire({ icon: 'error', title: 'Failed to reject' });
     }
   };
 
+  const pending = bookings.filter(
+    b => b.status?.toLowerCase() === 'pending',
+  ).length;
+  const approved = bookings.filter(
+    b => b.status?.toLowerCase() === 'approved',
+  ).length;
+  const paid = bookings.filter(b => b.status?.toLowerCase() === 'paid').length;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-100 p-4 md:p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">
-          Requested Bookings
-        </h1>
+    <div
+      className="min-h-screen px-4 py-8"
+      style={{ fontFamily: "'Sora', sans-serif" }}
+    >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
 
-        <p className="text-slate-500 mt-2 text-sm md:text-base">
-          Manage all customer booking requests
-        </p>
-      </div>
-
-      {/* Table Container */}
-      <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-        {/* Table Header */}
-        <div className="grid grid-cols-6 gap-4 px-6 py-5 bg-slate-900 text-slate-200 text-sm font-semibold uppercase tracking-wide">
-          <div>Customer</div>
-          <div>Date</div>
-          <div>Bus</div>
-          <div>Price</div>
-          <div>Status</div>
-          <div className="text-center">Action</div>
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-8" style={{ animation: 'fadeUp 0.4s ease both' }}>
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-3"
+            style={{
+              background: 'rgba(249,115,22,0.12)',
+              border: '0.5px solid rgba(249,115,22,0.3)',
+              color: '#fb923c',
+            }}
+          >
+            <FaBus size={11} /> Vendor Panel
+          </div>
+          <h1
+            className="text-3xl font-extrabold"
+            style={{ color: '#f8fafc', letterSpacing: '-0.02em' }}
+          >
+            Requested Bookings
+          </h1>
+          <p className="text-sm mt-1" style={{ color: '#64748b' }}>
+            {loading
+              ? 'Loading...'
+              : `${bookings.length} total booking requests`}
+          </p>
         </div>
 
-        {/* Table Rows */}
-        {currentBookings.length > 0 ? (
-          currentBookings.map(b => (
+        {/* Stats */}
+        {!loading && bookings.length > 0 && (
+          <div
+            className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6"
+            style={{ animation: 'fadeUp 0.4s 0.05s ease both' }}
+          >
+            {[
+              { label: 'Total', value: bookings.length, color: '#f97316' },
+              { label: 'Pending', value: pending, color: '#fbbf24' },
+              { label: 'Approved', value: approved, color: '#34d399' },
+              { label: 'Paid', value: paid, color: '#60a5fa' },
+            ].map(s => (
+              <div
+                key={s.label}
+                className="px-4 py-3 rounded-xl"
+                style={{ background: '#0f172a', border: '0.5px solid #1e293b' }}
+              >
+                <p
+                  className="text-2xl font-extrabold"
+                  style={{ color: s.color }}
+                >
+                  {s.value}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: '#475569' }}>
+                  {s.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Table */}
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{
+            border: '0.5px solid #1e293b',
+            animation: 'fadeUp 0.4s 0.1s ease both',
+          }}
+        >
+          {/* Table header */}
+          <div
+            className="grid grid-cols-6 gap-4 px-6 py-3 text-[10px] font-semibold uppercase tracking-widest"
+            style={{
+              background: '#0a1020',
+              color: '#334155',
+              borderBottom: '0.5px solid #1e293b',
+            }}
+          >
+            <span>Customer</span>
+            <span>Route</span>
+            <span>Date</span>
+            <span>Amount</span>
+            <span>Status</span>
+            <span className="text-center">Actions</span>
+          </div>
+
+          {/* Rows */}
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
+          ) : current.length === 0 ? (
             <div
-              key={b._id}
-              className="grid grid-cols-6 gap-4 px-6 py-5 items-center border-b border-slate-100 hover:bg-slate-50 transition-all duration-200"
+              className="flex flex-col items-center justify-center py-20"
+              style={{ background: '#0f172a' }}
             >
-              {/* Customer */}
-              <div className="flex items-center gap-3 text-sm font-medium text-slate-700">
-                <div className="bg-amber-100 p-2 rounded-full">
-                  <FaUser className="text-amber-600 text-sm" />
+              <FiInbox
+                size={36}
+                style={{ color: '#334155', marginBottom: 12 }}
+              />
+              <p className="text-sm font-semibold" style={{ color: '#475569' }}>
+                No booking requests yet
+              </p>
+              <p className="text-xs mt-1" style={{ color: '#334155' }}>
+                Requests will appear here when customers book your tickets
+              </p>
+            </div>
+          ) : (
+            current.map((b, i) => {
+              const sc = statusConfig(b.status);
+              const isActionable = !['approved', 'rejected', 'paid'].includes(
+                b.status?.toLowerCase(),
+              );
+
+              return (
+                <div
+                  key={b._id}
+                  className="grid grid-cols-6 gap-4 px-6 py-4 items-center transition-colors duration-150"
+                  style={{
+                    background: i % 2 === 0 ? '#0a1020' : '#0f172a',
+                    borderBottom: '0.5px solid #1e293b',
+                  }}
+                  onMouseEnter={e =>
+                    (e.currentTarget.style.background = '#111827')
+                  }
+                  onMouseLeave={e =>
+                    (e.currentTarget.style.background =
+                      i % 2 === 0 ? '#0a1020' : '#0f172a')
+                  }
+                >
+                  {/* Customer */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'rgba(249,115,22,0.12)' }}
+                    >
+                      <FaUser size={11} style={{ color: '#f97316' }} />
+                    </div>
+                    <span
+                      className="text-xs font-medium truncate"
+                      style={{ color: '#94a3b8' }}
+                    >
+                      {b.customerName || b.email || '—'}
+                    </span>
+                  </div>
+
+                  {/* Route */}
+                  <div className="flex items-center gap-1 text-xs min-w-0">
+                    <span
+                      className="font-semibold truncate"
+                      style={{ color: '#f97316' }}
+                    >
+                      {b.from || '—'}
+                    </span>
+                    <FaArrowRight
+                      size={8}
+                      style={{ color: '#334155', flexShrink: 0 }}
+                    />
+                    <span className="truncate" style={{ color: '#64748b' }}>
+                      {b.to || '—'}
+                    </span>
+                  </div>
+
+                  {/* Date */}
+                  <div className="flex items-center gap-1.5">
+                    <FaCalendarAlt size={10} style={{ color: '#475569' }} />
+                    <span className="text-xs" style={{ color: '#64748b' }}>
+                      {formatDate(b.createdAt || b.bookingDate)}
+                    </span>
+                  </div>
+
+                  {/* Amount */}
+                  <div className="flex items-center gap-1.5">
+                    <FaMoneyBillWave size={10} style={{ color: '#34d399' }} />
+                    <span
+                      className="text-xs font-bold"
+                      style={{ color: '#34d399' }}
+                    >
+                      ৳{b.price}
+                    </span>
+                  </div>
+
+                  {/* Status */}
+                  <span
+                    className="px-2.5 py-1 rounded-full text-[10px] font-semibold w-fit"
+                    style={{
+                      background: sc.bg,
+                      color: sc.color,
+                      border: `0.5px solid ${sc.border}`,
+                    }}
+                  >
+                    {sc.label}
+                  </span>
+
+                  {/* Actions */}
+                  <div className="flex justify-center gap-2">
+                    <button
+                      onClick={() => handleApprove(b._id)}
+                      disabled={!isActionable}
+                      title="Approve"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 disabled:opacity-25 disabled:cursor-not-allowed"
+                      style={{
+                        background: 'rgba(16,185,129,0.12)',
+                        border: '0.5px solid rgba(16,185,129,0.3)',
+                      }}
+                      onMouseEnter={e => {
+                        if (isActionable)
+                          e.currentTarget.style.filter = 'brightness(1.3)';
+                      }}
+                      onMouseLeave={e =>
+                        (e.currentTarget.style.filter = 'none')
+                      }
+                    >
+                      <FaCheckCircle size={13} style={{ color: '#34d399' }} />
+                    </button>
+                    <button
+                      onClick={() => handleReject(b._id)}
+                      disabled={!isActionable}
+                      title="Reject"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 disabled:opacity-25 disabled:cursor-not-allowed"
+                      style={{
+                        background: 'rgba(239,68,68,0.12)',
+                        border: '0.5px solid rgba(239,68,68,0.3)',
+                      }}
+                      onMouseEnter={e => {
+                        if (isActionable)
+                          e.currentTarget.style.filter = 'brightness(1.3)';
+                      }}
+                      onMouseLeave={e =>
+                        (e.currentTarget.style.filter = 'none')
+                      }
+                    >
+                      <FaTimesCircle size={13} style={{ color: '#f87171' }} />
+                    </button>
+                  </div>
                 </div>
+              );
+            })
+          )}
 
-                <span className="truncate">
-                  {b.customerName || b.email || 'Unknown'}
-                </span>
-              </div>
-
-              {/* Date */}
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <FaMapMarkerAlt className="text-blue-500" />
-
-                <span>{b.bookingDate || 'N/A'}</span>
-              </div>
-
-              {/* Bus */}
-              <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                <FaBus className="text-orange-500" />
-
-                <span>{b.title || 'N/A'}</span>
-              </div>
-
-              {/* Price */}
-              <div className="font-bold text-emerald-600 flex items-center gap-2 text-sm">
-                <FaMoneyBillWave className="text-emerald-500" />
-
-                <span>৳{b.price}</span>
-              </div>
-
-              {/* Status */}
-              <div>
-                <span
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-sm ${getStatusStyle(
-                    b.status,
-                  )}`}
-                >
-                  {b.status || 'unknown'}
-                </span>
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-center gap-3">
+          {/* Pagination footer */}
+          {!loading && bookings.length > ITEMS && (
+            <div
+              className="flex items-center justify-between px-6 py-3"
+              style={{
+                background: '#0a1020',
+                borderTop: '0.5px solid #1e293b',
+              }}
+            >
+              <span className="text-xs" style={{ color: '#334155' }}>
+                Page <span style={{ color: '#94a3b8' }}>{page}</span> of{' '}
+                <span style={{ color: '#94a3b8' }}>{totalPages}</span>
+              </span>
+              <div className="flex items-center gap-1">
                 <button
-                  onClick={() => handleApprove(b._id)}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white p-2.5 rounded-xl shadow-md transition duration-200"
+                  onClick={() => setPage(p => Math.max(p - 1, 1))}
+                  disabled={page === 1}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-all disabled:opacity-30"
+                  style={{ background: '#1e293b', color: '#64748b' }}
                 >
-                  <FaCheckCircle className="text-lg" />
+                  <FiChevronLeft size={14} />
                 </button>
-
+                {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
+                  const p = Math.max(1, page - 2) + i;
+                  if (p > totalPages) return null;
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className="w-8 h-8 rounded-lg text-xs font-bold transition-all"
+                      style={{
+                        background: page === p ? '#f97316' : '#1e293b',
+                        color: page === p ? '#fff' : '#64748b',
+                      }}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
                 <button
-                  onClick={() => handleReject(b._id)}
-                  className="bg-rose-500 hover:bg-rose-600 text-white p-2.5 rounded-xl shadow-md transition duration-200"
+                  onClick={() => setPage(p => Math.min(p + 1, totalPages))}
+                  disabled={page === totalPages}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-all disabled:opacity-30"
+                  style={{ background: '#1e293b', color: '#64748b' }}
                 >
-                  <FaTimesCircle className="text-lg" />
+                  <FiChevronRight size={14} />
                 </button>
               </div>
             </div>
-          ))
-        ) : (
-          <div className="p-14 text-center text-slate-400 text-lg">
-            No Booking Requests Found
-          </div>
-        )}
-      </div>
-
-      {/* Pagination */}
-      {/* Pagination */}
-      <div className="flex items-center justify-between mt-8 flex-wrap gap-4">
-        {/* Page Info */}
-        <div className="text-sm text-slate-500 font-medium">
-          Page <span className="text-slate-800 font-bold">{currentPage}</span>{' '}
-          of <span className="text-slate-800 font-bold">{totalPages}</span>
-        </div>
-
-        {/* Pagination Buttons */}
-        <div className="flex items-center gap-2 bg-white border border-slate-200 shadow-md rounded-2xl p-2">
-          {/* Previous */}
-          <button
-            onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-            disabled={currentPage === 1}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-              currentPage === 1
-                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                : 'bg-slate-900 text-white hover:scale-105'
-            }`}
-          >
-            Prev
-          </button>
-
-          {/* Page Numbers */}
-          {Array.from({ length: totalPages })
-            .slice(
-              Math.max(currentPage - 2, 0),
-              Math.min(currentPage + 1, totalPages),
-            )
-            .map((_, index) => {
-              const page = Math.max(currentPage - 2, 0) + index + 1;
-
-              return (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-10 h-10 rounded-xl text-sm font-bold transition-all duration-200 ${
-                    currentPage === page
-                      ? 'bg-amber-500 text-white shadow-lg scale-105'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  {page}
-                </button>
-              );
-            })}
-
-          {/* Next */}
-          <button
-            onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-              currentPage === totalPages
-                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                : 'bg-amber-500 text-white hover:scale-105'
-            }`}
-          >
-            Next
-          </button>
+          )}
         </div>
       </div>
     </div>

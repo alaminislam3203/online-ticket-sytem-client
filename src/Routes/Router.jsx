@@ -18,7 +18,6 @@ import ManageUsers from '../dashboard/adminDashborad/ManageUsers';
 import ManageTickets from '../dashboard/adminDashborad/ManageTickets';
 import AdminPayments from '../dashboard/adminDashborad/AdminPayments.jsx';
 
-import VendorProfile from '../dashboard/vendorDashboard/VendorProfile.jsx';
 import ManuVendor from '../dashboard/vendorDashboard/ManuVendor.jsx';
 import AddTicket from '../dashboard/vendorDashboard/AddTicket.jsx';
 import MyAddedTickets from '../dashboard/vendorDashboard/MyAddedTickets.jsx';
@@ -36,6 +35,7 @@ import CityTickets from '../ticket/CityTickets.jsx';
 import TicketDetails from '../Pages/TicketDetails.jsx';
 import MyBookings from '../dashboard/userDashborad/BookedTickets';
 import AdvertiseTickets from '../dashboard/adminDashborad/Advertisetickets .jsx';
+import VendorProfile from '../dashboard/vendorDashboard/VendorProfile.jsx';
 
 export const router = createBrowserRouter([
   {
@@ -94,13 +94,14 @@ export const router = createBrowserRouter([
         ),
         children: [
           // ── User Routes ──────────────────────────────────
-          {
-            path: 'profile',
-            element: <UserProfile />,
-          },
+
           {
             path: 'bookings',
             element: <MyBookings />,
+          },
+          {
+            path: 'user-profile',
+            element: <UserProfile />,
           },
           {
             path: 'history',
