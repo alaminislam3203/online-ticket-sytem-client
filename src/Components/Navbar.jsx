@@ -17,6 +17,7 @@ import {
   FiBriefcase,
 } from 'react-icons/fi';
 import { MdOutlineConfirmationNumber } from 'react-icons/md';
+import { HiTicket } from 'react-icons/hi2';
 
 const cities = [
   'Dhaka',
@@ -95,12 +96,15 @@ const Navbar = () => {
               to="/"
               className="flex-shrink-0 flex items-center gap-2 mr-2"
             >
-              <img
-                src={logo}
-                alt="Voyago"
-                className="w-9 h-9 rounded-full object-cover"
-                style={{ border: '2px solid #334155' }}
-              />
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center"
+                style={{
+                  background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                  border: '2px solid #334155',
+                }}
+              >
+                <HiTicket size={18} className="text-white" />
+              </div>
               <span
                 className="font-bold text-lg tracking-tight hidden xl:block"
                 style={{ color: '#f8fafc' }}

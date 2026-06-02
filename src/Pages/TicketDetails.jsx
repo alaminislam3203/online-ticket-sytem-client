@@ -13,8 +13,6 @@ import {
   FaCheckCircle,
   FaCalendarAlt,
   FaArrowLeft,
-  FaStar,
-  FaUsers,
 } from 'react-icons/fa';
 import {
   MdWifi,
@@ -58,19 +56,12 @@ const cityColors = {
     border: 'rgba(236,72,153,0.3)',
   },
 };
-const fallbacks = [
-  {
+const getTheme = city =>
+  cityColors[city?.toLowerCase()] || {
     color: '#06b6d4',
     light: 'rgba(6,182,212,0.12)',
     border: 'rgba(6,182,212,0.3)',
-  },
-  {
-    color: '#84cc16',
-    light: 'rgba(132,204,22,0.12)',
-    border: 'rgba(132,204,22,0.3)',
-  },
-];
-const getTheme = city => cityColors[city?.toLowerCase()] || fallbacks[0];
+  };
 
 // ─── Helpers ──────────────────────────────────────────────────────
 const formatDate = d => {
@@ -97,13 +88,10 @@ const isBookable = departureDate => {
 };
 const getDaysUntil = departureDate => {
   if (!departureDate) return null;
-  const diff = Math.ceil(
+  return Math.ceil(
     (new Date(departureDate) - new Date()) / (1000 * 60 * 60 * 24),
   );
-  return diff;
 };
-
-// perk icon guesser
 const perkIcon = perk => {
   const p = perk.toLowerCase();
   if (/wifi|wi-fi/.test(p)) return <MdWifi size={13} />;
@@ -150,15 +138,14 @@ const TicketDetails = () => {
       .get(`/api/tickets/${ticketId}`)
       .then(res => setTicket(res.data))
       .catch(err => {
-        if (err.response?.status === 404) {
+        if (err.response?.status === 404)
           setError('Ticket not found or unavailable.');
-        } else {
-          setError('Failed to load ticket. Please try again.');
-        }
+        else setError('Failed to load ticket. Please try again.');
       })
       .finally(() => setLoading(false));
   }, [ticketId, axiosSecure]);
 
+  // ── handleBook: booking save → Pending ────────────────────────
   const handleBook = async () => {
     if (!user?.email) {
       return Swal.fire({
@@ -172,20 +159,63 @@ const TicketDetails = () => {
       }).then(r => r.isConfirmed && navigate('/login'));
     }
 
+    // Quantity input modal
+    const { value: bookedQty } = await Swal.fire({
+      title: 'How many seats?',
+      input: 'number',
+      inputLabel: `Available: ${ticket.quantity} seat${ticket.quantity !== 1 ? 's' : ''}`,
+      inputValue: 1,
+      inputAttributes: { min: 1, max: ticket.quantity, step: 1 },
+      showCancelButton: true,
+      confirmButtonText: 'Confirm Booking',
+      confirmButtonColor: theme.color,
+      background: '#0f172a',
+      color: '#f8fafc',
+      inputValidator: value => {
+        if (!value || value < 1) return 'Quantity must be at least 1';
+        if (Number(value) > ticket.quantity)
+          return `Only ${ticket.quantity} seats available`;
+      },
+    });
+
+    if (!bookedQty) return; // cancelled
+
     setBooking(true);
     try {
-      const res = await axiosSecure.post('/create-checkout-session', {
+      // ── Booking database এ save হবে ──────────────────────────
+      await axiosSecure.post('/api/booking', {
         ticketId: ticket._id,
-        quantity: 1,
+        title: ticket.title,
+        from: ticket.from,
+        to: ticket.to,
+        busType: ticket.busType,
+        quantity: Number(bookedQty),
+        price: ticket.price * Number(bookedQty), // total price
+        unitPrice: ticket.price,
+        email: user.email,
+        customerName: user.displayName || user.name || user.email,
+        departureDate: ticket.departureDate,
+        departureTime: ticket.departureTime,
+        status: 'Pending',
       });
-      if (res.data?.url) window.location.href = res.data.url;
+
+      await Swal.fire({
+        title: 'Booking Requested! 🎉',
+        text: 'Your booking is pending vendor approval. Check My Booked Tickets for updates.',
+        icon: 'success',
+        background: '#0f172a',
+        color: '#f8fafc',
+        confirmButtonColor: theme.color,
+        confirmButtonText: 'View My Bookings',
+      });
+
+      navigate('/dashboard/my-bookings');
     } catch (err) {
       Swal.fire({
-        title: 'Payment Error',
+        title: 'Booking Failed',
         text:
           err?.response?.data?.message ||
-          err?.response?.data?.error ||
-          'Could not initiate payment. Please try again.',
+          'Could not place booking. Please try again.',
         icon: 'error',
         background: '#0f172a',
         color: '#f8fafc',
@@ -195,12 +225,12 @@ const TicketDetails = () => {
       setBooking(false);
     }
   };
+
   const soldOut = ticket?.quantity === 0;
   const bookable = ticket ? isBookable(ticket.departureDate) : false;
   const daysUntil = ticket ? getDaysUntil(ticket.departureDate) : null;
   const isLow = ticket?.quantity > 0 && ticket.quantity <= 5;
   const canBook = !soldOut && bookable;
-
   const cityLabel = cityName
     ? cityName.charAt(0).toUpperCase() + cityName.slice(1)
     : '';
@@ -217,11 +247,8 @@ const TicketDetails = () => {
           from { opacity: 0; transform: translateY(18px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes shimmer {
-          0%   { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        .fade-up { animation: fadeUp 0.45s ease both; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .fade-up   { animation: fadeUp 0.45s ease both; }
         .fade-up-1 { animation: fadeUp 0.45s 0.05s ease both; }
         .fade-up-2 { animation: fadeUp 0.45s 0.12s ease both; }
         .fade-up-3 { animation: fadeUp 0.45s 0.20s ease both; }
@@ -233,13 +260,13 @@ const TicketDetails = () => {
         {/* Back button */}
         <button
           onClick={() => navigate(-1)}
-          className="fade-up flex items-center gap-2 mb-6 text-sm font-medium transition-all duration-200 group"
+          className="fade-up flex items-center gap-2 mb-6 text-sm font-medium transition-all duration-200"
           style={{ color: '#64748b' }}
           onMouseEnter={e => (e.currentTarget.style.color = theme.color)}
           onMouseLeave={e => (e.currentTarget.style.color = '#64748b')}
         >
           <span
-            className="w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200"
+            className="w-8 h-8 rounded-xl flex items-center justify-center"
             style={{ background: '#0f172a', border: '0.5px solid #1e293b' }}
           >
             <FiArrowLeft size={14} />
@@ -247,10 +274,8 @@ const TicketDetails = () => {
           Back to {cityLabel} routes
         </button>
 
-        {/* Loading */}
         {loading && <Skeleton />}
 
-        {/* Error */}
         {error && (
           <div className="flex flex-col items-center justify-center py-32 fade-up">
             <div
@@ -279,7 +304,6 @@ const TicketDetails = () => {
           </div>
         )}
 
-        {/* Main content */}
         {!loading && !error && ticket && (
           <div className="space-y-5">
             {/* ── Hero card ─────────────────────────────────────── */}
@@ -287,7 +311,6 @@ const TicketDetails = () => {
               className="fade-up-1 relative rounded-3xl overflow-hidden"
               style={{ border: `0.5px solid ${theme.border}` }}
             >
-              {/* Background image or gradient */}
               {ticket.image ? (
                 <div className="relative h-64 sm:h-80 overflow-hidden">
                   <img
@@ -315,7 +338,6 @@ const TicketDetails = () => {
                     background: `linear-gradient(135deg, ${theme.light}, rgba(2,8,23,0.95))`,
                   }}
                 >
-                  {/* decorative rings */}
                   {[160, 240, 320].map((s, i) => (
                     <div
                       key={i}
@@ -339,7 +361,6 @@ const TicketDetails = () => {
                 </div>
               )}
 
-              {/* Overlay info (bottom of image) */}
               <div
                 style={{
                   position: ticket.image ? 'absolute' : 'relative',
@@ -350,7 +371,6 @@ const TicketDetails = () => {
                   padding: '24px 28px',
                 }}
               >
-                {/* Badge row */}
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
                   <span
                     className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
@@ -360,21 +380,8 @@ const TicketDetails = () => {
                       border: `0.5px solid ${theme.border}`,
                     }}
                   >
-                    <FaMapMarkerAlt size={10} />
-                    {cityLabel} · Bus Route
+                    <FaMapMarkerAlt size={10} /> {cityLabel} · Bus Route
                   </span>
-                  {ticket.approved && (
-                    <span
-                      className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold"
-                      style={{
-                        background: 'rgba(16,185,129,0.15)',
-                        color: '#34d399',
-                        border: '0.5px solid rgba(16,185,129,0.3)',
-                      }}
-                    >
-                      <FaCheckCircle size={9} /> Verified Operator
-                    </span>
-                  )}
                   {soldOut && (
                     <span
                       className="px-3 py-1 rounded-full text-xs font-semibold"
@@ -411,12 +418,10 @@ const TicketDetails = () => {
                           border: '0.5px solid rgba(239,68,68,0.25)',
                         }}
                       >
-                        Departs in {daysUntil === 0 ? 'today' : `${daysUntil}d`}
+                        Departs {daysUntil === 0 ? 'today' : `in ${daysUntil}d`}
                       </span>
                     )}
                 </div>
-
-                {/* Title */}
                 <h1
                   className="text-2xl sm:text-3xl font-extrabold leading-tight mb-1"
                   style={{ color: '#f8fafc', letterSpacing: '-0.02em' }}
@@ -435,7 +440,6 @@ const TicketDetails = () => {
               style={{ background: '#0f172a', border: '0.5px solid #1e293b' }}
             >
               <div className="flex items-center justify-between gap-4">
-                {/* From */}
                 <div className="flex-1">
                   <p
                     className="text-[10px] uppercase tracking-widest mb-1"
@@ -473,7 +477,6 @@ const TicketDetails = () => {
                   )}
                 </div>
 
-                {/* Arrow */}
                 <div className="flex flex-col items-center gap-1">
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center"
@@ -489,7 +492,6 @@ const TicketDetails = () => {
                   </p>
                 </div>
 
-                {/* To */}
                 <div className="flex-1 text-right">
                   <p
                     className="text-[10px] uppercase tracking-widest mb-1"
@@ -527,7 +529,7 @@ const TicketDetails = () => {
                   ),
                   label: 'Departure Date',
                   value: formatDateShort(ticket.departureDate),
-                  sub: formatDate(ticket.departureDate).split(',')[0], // weekday
+                  sub: formatDate(ticket.departureDate).split(',')[0],
                 },
                 {
                   icon: <FaClock size={14} style={{ color: theme.color }} />,
@@ -617,9 +619,8 @@ const TicketDetails = () => {
               ))}
             </div>
 
-            {/* ── Amenities + Description ───────────────────────── */}
+            {/* ── Perks + Description ───────────────────────────── */}
             <div className="fade-up-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Perks */}
               {ticket.perks?.length > 0 && (
                 <div
                   className="rounded-2xl p-5"
@@ -656,8 +657,6 @@ const TicketDetails = () => {
                   </div>
                 </div>
               )}
-
-              {/* Description / extra info */}
               <div
                 className="rounded-2xl p-5"
                 style={{ background: '#0f172a', border: '0.5px solid #1e293b' }}
@@ -681,8 +680,6 @@ const TicketDetails = () => {
                       No additional description provided.
                     </p>
                   )}
-
-                  {/* Extra fields if present */}
                   {ticket.stops?.length > 0 && (
                     <div className="mt-3">
                       <p
@@ -722,7 +719,7 @@ const TicketDetails = () => {
               }}
             >
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
-                {/* Price block */}
+                {/* Price */}
                 <div>
                   <p
                     className="text-[11px] uppercase tracking-widest mb-1"
@@ -754,7 +751,7 @@ const TicketDetails = () => {
                   )}
                 </div>
 
-                {/* Action block */}
+                {/* Button */}
                 <div className="flex flex-col gap-2 w-full sm:w-auto min-w-[200px]">
                   {canBook ? (
                     <button
@@ -812,7 +809,6 @@ const TicketDetails = () => {
                     </div>
                   )}
 
-                  {/* Notice */}
                   {!soldOut &&
                     !bookable &&
                     daysUntil !== null &&
@@ -830,14 +826,14 @@ const TicketDetails = () => {
                       className="text-[11px] text-center"
                       style={{ color: '#475569' }}
                     >
-                      Secure checkout · Instant confirmation
+                      Booking pending · Vendor approval required
                     </p>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* ── Related navigation ────────────────────────────── */}
+            {/* ── Navigation ────────────────────────────────────── */}
             <div className="flex items-center justify-between pt-2 pb-6">
               <button
                 onClick={() => navigate(`/tickets/${cityName}`)}
@@ -856,10 +852,8 @@ const TicketDetails = () => {
                   e.currentTarget.style.color = '#64748b';
                 }}
               >
-                <FiArrowLeft size={13} />
-                All {cityLabel} tickets
+                <FiArrowLeft size={13} /> All {cityLabel} tickets
               </button>
-
               <button
                 onClick={() => navigate('/tickets')}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
@@ -877,16 +871,12 @@ const TicketDetails = () => {
                   e.currentTarget.style.color = '#64748b';
                 }}
               >
-                Browse all routes
-                <FiArrowRight size={13} />
+                Browse all routes <FiArrowRight size={13} />
               </button>
             </div>
           </div>
         )}
       </div>
-
-      {/* spinner keyframe */}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

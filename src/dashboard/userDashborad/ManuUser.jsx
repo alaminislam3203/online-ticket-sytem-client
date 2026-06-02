@@ -10,7 +10,7 @@ const navItems = [
     desc: 'Account & settings',
   },
   {
-    to: '/dashboard/bookings',
+    to: '/dashboard/my-bookings',
     icon: <FaTicketAlt size={13} />,
     label: 'My Bookings',
     desc: 'View booked tickets',

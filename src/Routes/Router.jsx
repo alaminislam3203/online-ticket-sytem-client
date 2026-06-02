@@ -96,7 +96,7 @@ export const router = createBrowserRouter([
           // ── User Routes ──────────────────────────────────
 
           {
-            path: 'bookings',
+            path: 'my-bookings',
             element: <MyBookings />,
           },
           {
