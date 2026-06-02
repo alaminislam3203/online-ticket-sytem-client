@@ -203,6 +203,14 @@ export const router = createBrowserRouter([
                 ),
               },
               {
+                path: 'booked-tickets',
+                element: (
+                  <VendorRoute>
+                    <BookedTickets />
+                  </VendorRoute>
+                ),
+              },
+              {
                 path: 'revenue',
                 element: (
                   <VendorRoute>

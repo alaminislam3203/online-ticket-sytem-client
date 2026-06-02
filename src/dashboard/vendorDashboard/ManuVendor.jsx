@@ -7,6 +7,7 @@ import {
   FaChartLine,
 } from 'react-icons/fa';
 import { FiChevronRight } from 'react-icons/fi';
+import { MdConfirmationNumber } from 'react-icons/md';
 
 const navItems = [
   {
@@ -32,6 +33,12 @@ const navItems = [
     icon: <FaCalendarCheck size={13} />,
     label: 'Requested Bookings',
     desc: 'Pending approvals',
+  },
+  {
+    to: '/dashboard/vendor-dashboard/booked-tickets',
+    icon: <MdConfirmationNumber size={13} />,
+    label: 'Booked Tickets',
+    desc: 'Approved bookings',
   },
   {
     to: '/dashboard/vendor-dashboard/revenue',

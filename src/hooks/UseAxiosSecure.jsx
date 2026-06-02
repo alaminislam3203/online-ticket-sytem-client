@@ -1,28 +1,24 @@
 import axios from 'axios';
-import { useRef, useEffect } from 'react';
+import { useRef } from 'react';
 
 const UseAxiosSecure = () => {
-  const instanceRef = useRef(
-    axios.create({
+  const instanceRef = useRef(null);
+
+  if (!instanceRef.current) {
+    const instance = axios.create({
       baseURL: import.meta.env.VITE_API_URL,
-    }),
-  );
+    });
 
-  useEffect(() => {
-    const reqInterceptor = instanceRef.current.interceptors.request.use(
-      config => {
-        const token = localStorage.getItem('token');
-        if (token) {
-          config.headers.authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-    );
+    instance.interceptors.request.use(config => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.authorization = `Bearer ${token}`;
+      }
+      return config;
+    });
 
-    return () => {
-      instanceRef.current.interceptors.request.eject(reqInterceptor);
-    };
-  }, []);
+    instanceRef.current = instance;
+  }
 
   return instanceRef.current;
 };

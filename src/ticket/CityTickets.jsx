@@ -1,6 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { useParams } from 'react-router';
-import Swal from 'sweetalert2';
+import { useParams, useNavigate } from 'react-router';
 import UseAxiosSecure from '../hooks/UseAxiosSecure';
 import { AuthContext } from '../Context/AuthContext';
 import {
@@ -8,18 +7,13 @@ import {
   FaMapMarkerAlt,
   FaClock,
   FaChair,
-  FaStar,
   FaShieldAlt,
   FaArrowRight,
-  FaBolt,
-  FaFire,
-  FaTag,
   FaCalendarAlt,
-  FaTimes,
   FaCheckCircle,
 } from 'react-icons/fa';
-import { MdWifi, MdOutlineConfirmationNumber, MdAcUnit } from 'react-icons/md';
-import { FiArrowRight, FiX, FiFilter } from 'react-icons/fi';
+import { MdWifi, MdAcUnit, MdOutlineConfirmationNumber } from 'react-icons/md';
+import { FiArrowRight, FiFilter } from 'react-icons/fi';
 
 // ─── City color map ──────────────────────────────────────────────
 const cityColors = {
@@ -63,12 +57,12 @@ const getTheme = city =>
   };
 
 // ─── Helpers ─────────────────────────────────────────────────────
+// Match the 15-day window used in TicketDetails
 const isBookable = departureDate => {
   if (!departureDate) return false;
-  const today = new Date();
-  const departure = new Date(departureDate);
-  const diffDays = (departure - today) / (1000 * 60 * 60 * 24);
-  return diffDays >= 0 && diffDays <= 7;
+  const diffDays =
+    (new Date(departureDate) - new Date()) / (1000 * 60 * 60 * 24);
+  return diffDays >= 0 && diffDays <= 15;
 };
 
 const formatDate = d => {
@@ -322,260 +316,6 @@ const TicketCard = ({ bus, theme, onView }) => {
   );
 };
 
-// ─── Modal ────────────────────────────────────────────────────────
-const TicketModal = ({ bus, theme, onClose, onBook }) => {
-  if (!bus) return null;
-  const bookable = isBookable(bus.departureDate);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(2,8,23,0.85)', backdropFilter: 'blur(6px)' }}
-      onClick={e => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        className="w-full max-w-md rounded-2xl overflow-hidden"
-        style={{ background: '#0f172a', border: `0.5px solid ${theme.border}` }}
-      >
-        {/* Image header */}
-        <div className="relative h-44 overflow-hidden">
-          {bus.image ? (
-            <img
-              src={bus.image}
-              alt={bus.title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div
-              className="w-full h-full flex items-center justify-center"
-              style={{ background: '#1e293b' }}
-            >
-              <FaBus size={40} style={{ color: theme.color, opacity: 0.4 }} />
-            </div>
-          )}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background:
-                'linear-gradient(to top, #0f172a 15%, transparent 65%)',
-            }}
-          />
-          <div
-            className="absolute top-3 left-3 flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold"
-            style={{
-              background: theme.light,
-              color: theme.color,
-              border: `0.5px solid ${theme.border}`,
-            }}
-          >
-            <FaBus size={10} /> {bus.title}
-          </div>
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-            style={{ background: 'rgba(15,23,42,0.8)', color: '#94a3b8' }}
-            onMouseEnter={e => {
-              e.currentTarget.style.color = '#f8fafc';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.color = '#94a3b8';
-            }}
-          >
-            <FiX size={15} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-5 space-y-4">
-          {/* Route row */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p
-                className="text-[10px] uppercase tracking-wider"
-                style={{ color: '#475569' }}
-              >
-                From
-              </p>
-              <p
-                className="text-lg font-bold mt-0.5"
-                style={{ color: theme.color }}
-              >
-                {bus.from}
-              </p>
-            </div>
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center"
-              style={{
-                background: theme.light,
-                border: `0.5px solid ${theme.border}`,
-              }}
-            >
-              <FaArrowRight size={13} style={{ color: theme.color }} />
-            </div>
-            <div className="text-right">
-              <p
-                className="text-[10px] uppercase tracking-wider"
-                style={{ color: '#475569' }}
-              >
-                To
-              </p>
-              <p
-                className="text-lg font-bold mt-0.5"
-                style={{ color: '#e2e8f0' }}
-              >
-                {bus.to}
-              </p>
-            </div>
-          </div>
-
-          {/* Info grid */}
-          <div
-            className="grid grid-cols-2 gap-3 p-4 rounded-xl"
-            style={{ background: '#1e293b' }}
-          >
-            {[
-              {
-                label: 'Departure Date',
-                value: formatDate(bus.departureDate),
-                icon: <FaCalendarAlt size={11} />,
-              },
-              {
-                label: 'Departure Time',
-                value: bus.departureTime || '—',
-                icon: <FaClock size={11} />,
-              },
-              {
-                label: 'Seats Available',
-                value: bus.quantity > 0 ? `${bus.quantity} seats` : 'Sold Out',
-                icon: <FaChair size={11} />,
-              },
-              {
-                label: 'Status',
-                value: bus.approved ? 'Verified' : 'Pending',
-                icon: <FaShieldAlt size={11} />,
-              },
-            ].map((item, i) => (
-              <div key={i}>
-                <div
-                  className="flex items-center gap-1 mb-1"
-                  style={{ color: '#475569' }}
-                >
-                  {item.icon}
-                  <span className="text-[10px] uppercase tracking-wider">
-                    {item.label}
-                  </span>
-                </div>
-                <p
-                  className="text-sm font-semibold"
-                  style={{ color: '#e2e8f0' }}
-                >
-                  {item.value}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Perks */}
-          {bus.perks?.length > 0 && (
-            <div>
-              <p
-                className="text-[10px] uppercase tracking-wider mb-2"
-                style={{ color: '#475569' }}
-              >
-                Included Amenities
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {bus.perks.map((perk, i) => (
-                  <span
-                    key={i}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs"
-                    style={{
-                      background: '#1e293b',
-                      color: '#94a3b8',
-                      border: '0.5px solid #334155',
-                    }}
-                  >
-                    <FaCheckCircle size={9} style={{ color: theme.color }} />
-                    {perk}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Price + action */}
-          <div
-            className="flex items-center justify-between pt-4"
-            style={{ borderTop: '0.5px solid #1e293b' }}
-          >
-            <div>
-              <p
-                className="text-[10px] uppercase tracking-wider"
-                style={{ color: '#475569' }}
-              >
-                Total Price
-              </p>
-              <p
-                className="text-3xl font-extrabold mt-0.5"
-                style={{ color: theme.color }}
-              >
-                ৳{bus.price}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={onClose}
-                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-                style={{ color: '#64748b', border: '0.5px solid #1e293b' }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = '#334155';
-                  e.currentTarget.style.color = '#94a3b8';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = '#1e293b';
-                  e.currentTarget.style.color = '#64748b';
-                }}
-              >
-                Close
-              </button>
-
-              {bus.quantity > 0 && bookable ? (
-                <button
-                  onClick={() => onBook(bus)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200"
-                  style={{ background: theme.color }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.filter = 'brightness(0.88)';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.filter = 'none';
-                  }}
-                >
-                  <MdOutlineConfirmationNumber size={15} />
-                  Book Now
-                </button>
-              ) : (
-                <div
-                  className="px-5 py-2.5 rounded-xl text-sm font-semibold"
-                  style={{
-                    background: 'rgba(239,68,68,0.1)',
-                    color: '#f87171',
-                    border: '0.5px solid rgba(239,68,68,0.2)',
-                  }}
-                >
-                  {bus.quantity === 0 ? 'Sold Out' : 'Unavailable'}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // ─── Skeleton ────────────────────────────────────────────────────
 const SkeletonCard = () => (
   <div
@@ -637,11 +377,10 @@ const SkeletonCard = () => (
 // ─── Main Component ──────────────────────────────────────────────
 const CityTickets = () => {
   const { cityName } = useParams();
-  const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const axiosSecure = UseAxiosSecure();
 
   const [tickets, setTickets] = useState([]);
-  const [selectedBus, setSelectedBus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
 
@@ -661,35 +400,9 @@ const CityTickets = () => {
       .finally(() => setLoading(false));
   }, [cityName, axiosSecure]);
 
-  const handleBook = async bus => {
-    try {
-      if (!user?.email) {
-        return Swal.fire({
-          title: 'Login Required',
-          text: 'Please login to book a ticket',
-          icon: 'warning',
-          background: '#0f172a',
-          color: '#f8fafc',
-          confirmButtonColor: theme.color,
-        });
-      }
-      const res = await axiosSecure.post('/create-checkout-session', {
-        ticketId: bus._id,
-        email: user.email,
-        price: bus.price,
-        title: bus.title,
-      });
-      if (res.data?.url) window.location.href = res.data.url;
-    } catch {
-      Swal.fire({
-        title: 'Error',
-        text: 'Payment failed. Please try again.',
-        icon: 'error',
-        background: '#0f172a',
-        color: '#f8fafc',
-        confirmButtonColor: theme.color,
-      });
-    }
+  // Navigate to TicketDetails page — matches route: /tickets/:cityName/:ticketId
+  const handleView = bus => {
+    navigate(`/tickets/${cityName}/${bus._id}`);
   };
 
   const filters = ['All', 'Available', 'AC', 'Bookable'];
@@ -853,7 +566,7 @@ const CityTickets = () => {
                 key={bus._id}
                 bus={bus}
                 theme={theme}
-                onView={setSelectedBus}
+                onView={handleView}
               />
             ))}
           </div>
@@ -882,23 +595,13 @@ const CityTickets = () => {
               onMouseLeave={e => {
                 e.currentTarget.style.filter = 'none';
               }}
-              onClick={() => (window.location.href = '/contact')}
+              onClick={() => navigate('/contact')}
             >
               Contact Support <FiArrowRight size={14} />
             </button>
           </div>
         )}
       </div>
-
-      {/* Modal */}
-      {selectedBus && (
-        <TicketModal
-          bus={selectedBus}
-          theme={theme}
-          onClose={() => setSelectedBus(null)}
-          onBook={handleBook}
-        />
-      )}
     </div>
   );
 };
