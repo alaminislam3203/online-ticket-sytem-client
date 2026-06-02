@@ -73,6 +73,14 @@ const formatDate = d => {
     year: 'numeric',
   });
 };
+const formatTime12h = t => {
+  if (!t) return '—';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 || 12;
+  return `${hour}:${String(m).padStart(2, '0')} ${ampm}`;
+};
+
 const formatDateShort = d => {
   if (!d) return '—';
   return new Date(d).toLocaleDateString('en-GB', {
@@ -117,6 +125,289 @@ const Skeleton = () => (
   </div>
 );
 
+// ─── Booking Modal Component ──────────────────────────────────────
+const BookingModal = ({ ticket, user, theme, onClose, onConfirm, loading }) => {
+  const [form, setForm] = useState({
+    quantity: 1,
+    customerName: user?.displayName || user?.name || '',
+    mobile: '',
+    boardingPoint: '',
+    dropPoint: '',
+  });
+  const [errors, setErrors] = useState({});
+
+  const set = (key, val) => {
+    setForm(f => ({ ...f, [key]: val }));
+    setErrors(e => ({ ...e, [key]: '' }));
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.customerName.trim()) e.customerName = 'Name is required';
+    if (!form.mobile.trim()) e.mobile = 'Mobile number is required';
+    else if (!/^[0-9+\-\s]{7,15}$/.test(form.mobile.trim()))
+      e.mobile = 'Enter a valid mobile number';
+    if (!form.boardingPoint.trim())
+      e.boardingPoint = 'Boarding point is required';
+    if (!form.dropPoint.trim()) e.dropPoint = 'Drop point is required';
+    if (form.quantity < 1) e.quantity = 'At least 1 seat required';
+    if (form.quantity > ticket.quantity)
+      e.quantity = `Only ${ticket.quantity} seats available`;
+    return e;
+  };
+
+  const handleSubmit = () => {
+    const e = validate();
+    if (Object.keys(e).length > 0) {
+      setErrors(e);
+      return;
+    }
+    onConfirm(form);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(2,8,23,0.85)', backdropFilter: 'blur(8px)' }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        className="w-full max-w-md rounded-3xl overflow-hidden"
+        style={{
+          background: '#0f172a',
+          border: `1px solid ${theme.border}`,
+          boxShadow: `0 0 60px ${theme.color}18`,
+        }}
+      >
+        {/* Header */}
+        <div
+          className="px-6 py-4 flex items-center justify-between border-b"
+          style={{ borderColor: '#1e293b' }}
+        >
+          <div>
+            <h2 className="text-base font-bold" style={{ color: '#f8fafc' }}>
+              Book Your Seat
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: '#64748b' }}>
+              {ticket.from} → {ticket.to}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-lg font-bold transition"
+            style={{ background: '#1e293b', color: '#64748b' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#64748b')}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          {/* Passenger Name */}
+          <Field
+            label="Passenger Name"
+            required
+            error={errors.customerName}
+            theme={theme}
+          >
+            <input
+              type="text"
+              value={form.customerName}
+              onChange={e => set('customerName', e.target.value)}
+              placeholder="Full name"
+              style={inputStyle(errors.customerName, theme)}
+            />
+          </Field>
+
+          {/* Mobile */}
+          <Field
+            label="Mobile Number"
+            required
+            error={errors.mobile}
+            theme={theme}
+          >
+            <input
+              type="tel"
+              value={form.mobile}
+              onChange={e => set('mobile', e.target.value)}
+              placeholder="+880 1XXX-XXXXXX"
+              style={inputStyle(errors.mobile, theme)}
+            />
+          </Field>
+
+          {/* Boarding Point */}
+          <Field
+            label="Boarding Point"
+            hint={`Where will you board near ${ticket.from}?`}
+            required
+            error={errors.boardingPoint}
+            theme={theme}
+          >
+            <input
+              type="text"
+              value={form.boardingPoint}
+              onChange={e => set('boardingPoint', e.target.value)}
+              placeholder={`e.g. ${ticket.from} Bus Stand`}
+              style={inputStyle(errors.boardingPoint, theme)}
+            />
+          </Field>
+
+          {/* Drop Point */}
+          <Field
+            label="Drop Point"
+            hint={`Where do you want to get off near ${ticket.to}?`}
+            required
+            error={errors.dropPoint}
+            theme={theme}
+          >
+            <input
+              type="text"
+              value={form.dropPoint}
+              onChange={e => set('dropPoint', e.target.value)}
+              placeholder={`e.g. ${ticket.to} Terminal`}
+              style={inputStyle(errors.dropPoint, theme)}
+            />
+          </Field>
+
+          {/* Quantity */}
+          <Field
+            label="Number of Seats"
+            hint={`Max ${ticket.quantity} seat${ticket.quantity !== 1 ? 's' : ''} available`}
+            error={errors.quantity}
+            theme={theme}
+          >
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => set('quantity', Math.max(1, form.quantity - 1))}
+                className="w-9 h-9 rounded-xl text-lg font-bold flex items-center justify-center transition"
+                style={{
+                  background: '#1e293b',
+                  color: form.quantity <= 1 ? '#334155' : '#94a3b8',
+                  border: '0.5px solid #334155',
+                }}
+                disabled={form.quantity <= 1}
+              >
+                −
+              </button>
+              <span
+                className="text-xl font-extrabold w-8 text-center"
+                style={{ color: theme.color }}
+              >
+                {form.quantity}
+              </span>
+              <button
+                onClick={() =>
+                  set('quantity', Math.min(ticket.quantity, form.quantity + 1))
+                }
+                className="w-9 h-9 rounded-xl text-lg font-bold flex items-center justify-center transition"
+                style={{
+                  background: '#1e293b',
+                  color:
+                    form.quantity >= ticket.quantity ? '#334155' : '#94a3b8',
+                  border: '0.5px solid #334155',
+                }}
+                disabled={form.quantity >= ticket.quantity}
+              >
+                +
+              </button>
+              <span className="text-sm ml-1" style={{ color: '#475569' }}>
+                × ৳{ticket.price} ={' '}
+                <span style={{ color: theme.color, fontWeight: 700 }}>
+                  ৳{(ticket.price * form.quantity).toLocaleString()}
+                </span>
+              </span>
+            </div>
+          </Field>
+        </div>
+
+        {/* Footer */}
+        <div
+          className="px-6 py-4 border-t flex gap-3"
+          style={{ borderColor: '#1e293b' }}
+        >
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition"
+            style={{
+              background: '#1e293b',
+              color: '#64748b',
+              border: '0.5px solid #334155',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="flex-2 flex-grow flex items-center justify-center gap-2 py-2.5 px-5 rounded-xl text-sm font-bold text-white transition disabled:opacity-60 disabled:cursor-wait"
+            style={{ background: theme.color }}
+          >
+            {loading ? (
+              <>
+                <span
+                  className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                  style={{ animation: 'spin 0.6s linear infinite' }}
+                />
+                Processing…
+              </>
+            ) : (
+              <>
+                <MdOutlineConfirmationNumber size={15} />
+                Confirm Booking
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Field wrapper ────────────────────────────────────────────────
+const Field = ({ label, hint, required, error, theme, children }) => (
+  <div>
+    <label
+      className="block text-xs font-semibold mb-1.5"
+      style={{ color: '#94a3b8' }}
+    >
+      {label}
+      {required && (
+        <span style={{ color: theme.color }} className="ml-0.5">
+          *
+        </span>
+      )}
+    </label>
+    {hint && (
+      <p className="text-[10px] mb-1" style={{ color: '#475569' }}>
+        {hint}
+      </p>
+    )}
+    {children}
+    {error && (
+      <p
+        className="text-[10px] mt-1 flex items-center gap-1"
+        style={{ color: '#f87171' }}
+      >
+        <FiAlertCircle size={9} /> {error}
+      </p>
+    )}
+  </div>
+);
+
+const inputStyle = (error, theme) => ({
+  width: '100%',
+  background: '#0a1120',
+  border: `0.5px solid ${error ? 'rgba(239,68,68,0.5)' : '#1e293b'}`,
+  borderRadius: 10,
+  padding: '10px 12px',
+  color: '#e2e8f0',
+  fontSize: 13,
+  outline: 'none',
+  transition: 'border-color 0.15s',
+});
+
 // ─── Main ─────────────────────────────────────────────────────────
 const TicketDetails = () => {
   const { cityName, ticketId } = useParams();
@@ -127,6 +418,7 @@ const TicketDetails = () => {
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState(null);
   const [imgLoaded, setImgLoaded] = useState(false);
 
@@ -145,8 +437,8 @@ const TicketDetails = () => {
       .finally(() => setLoading(false));
   }, [ticketId, axiosSecure]);
 
-  // ── handleBook: booking save → Pending ────────────────────────
-  const handleBook = async () => {
+  // ── Open modal or redirect to login ──────────────────────────
+  const handleBook = () => {
     if (!user?.email) {
       return Swal.fire({
         title: 'Login Required',
@@ -158,46 +450,39 @@ const TicketDetails = () => {
         confirmButtonText: 'Go to Login',
       }).then(r => r.isConfirmed && navigate('/login'));
     }
+    setShowModal(true);
+  };
 
-    // Quantity input modal
-    const { value: bookedQty } = await Swal.fire({
-      title: 'How many seats?',
-      input: 'number',
-      inputLabel: `Available: ${ticket.quantity} seat${ticket.quantity !== 1 ? 's' : ''}`,
-      inputValue: 1,
-      inputAttributes: { min: 1, max: ticket.quantity, step: 1 },
-      showCancelButton: true,
-      confirmButtonText: 'Confirm Booking',
-      confirmButtonColor: theme.color,
-      background: '#0f172a',
-      color: '#f8fafc',
-      inputValidator: value => {
-        if (!value || value < 1) return 'Quantity must be at least 1';
-        if (Number(value) > ticket.quantity)
-          return `Only ${ticket.quantity} seats available`;
-      },
-    });
-
-    if (!bookedQty) return; // cancelled
-
+  // ── Confirm booking from modal ────────────────────────────────
+  const handleConfirm = async ({
+    quantity,
+    customerName,
+    mobile,
+    boardingPoint,
+    dropPoint,
+  }) => {
     setBooking(true);
     try {
-      // ── Booking database এ save হবে ──────────────────────────
       await axiosSecure.post('/api/booking', {
         ticketId: ticket._id,
         title: ticket.title,
         from: ticket.from,
         to: ticket.to,
         busType: ticket.busType,
-        quantity: Number(bookedQty),
-        price: ticket.price * Number(bookedQty), // total price
+        quantity: Number(quantity),
+        price: ticket.price * Number(quantity),
         unitPrice: ticket.price,
         email: user.email,
-        customerName: user.displayName || user.name || user.email,
+        customerName,
+        mobile,
+        boardingPoint,
+        dropPoint,
         departureDate: ticket.departureDate,
         departureTime: ticket.departureTime,
         status: 'Pending',
       });
+
+      setShowModal(false);
 
       await Swal.fire({
         title: 'Booking Requested! 🎉',
@@ -254,7 +539,20 @@ const TicketDetails = () => {
         .fade-up-3 { animation: fadeUp 0.45s 0.20s ease both; }
         .fade-up-4 { animation: fadeUp 0.45s 0.28s ease both; }
         .fade-up-5 { animation: fadeUp 0.45s 0.36s ease both; }
+        input:focus { border-color: ${theme.color} !important; }
       `}</style>
+
+      {/* Booking Modal */}
+      {showModal && ticket && (
+        <BookingModal
+          ticket={ticket}
+          user={user}
+          theme={theme}
+          onClose={() => !booking && setShowModal(false)}
+          onConfirm={handleConfirm}
+          loading={booking}
+        />
+      )}
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         {/* Back button */}
@@ -472,7 +770,7 @@ const TicketDetails = () => {
                       className="text-sm mt-1 font-semibold"
                       style={{ color: '#94a3b8' }}
                     >
-                      {ticket.departureTime}
+                      {formatTime12h(ticket.departureTime)}
                     </p>
                   )}
                 </div>
@@ -534,7 +832,7 @@ const TicketDetails = () => {
                 {
                   icon: <FaClock size={14} style={{ color: theme.color }} />,
                   label: 'Departure Time',
-                  value: ticket.departureTime || '—',
+                  value: formatTime12h(ticket.departureTime),
                   sub:
                     daysUntil !== null && daysUntil >= 0
                       ? daysUntil === 0

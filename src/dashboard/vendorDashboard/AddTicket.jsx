@@ -101,7 +101,7 @@ const AddTicket = () => {
     const data = new FormData();
     data.append('image', imageFile);
     const res = await fetch(
-      `https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`,
+      `https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_image_host_key}`,
       { method: 'POST', body: data },
     );
     const json = await res.json();

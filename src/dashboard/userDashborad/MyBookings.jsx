@@ -54,6 +54,15 @@ const formatDate = d => {
   });
 };
 
+// ─── 12-hour time format ──────────────────────────────────────────
+const formatTime12h = t => {
+  if (!t) return '—';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 || 12;
+  return `${hour}:${String(m).padStart(2, '0')} ${ampm}`;
+};
+
 // ─── Countdown hook ───────────────────────────────────────────────
 const useCountdown = (departureDate, departureTime) => {
   const getTarget = () => {
@@ -178,6 +187,19 @@ const BookingCard = ({ booking, onPay, paying }) => {
             )}
           </div>
 
+          {/* Boarding → Drop */}
+          {(booking.boardingPoint || booking.dropPoint) && (
+            <div className="flex items-center gap-1.5 text-[10px] md:text-[11px]">
+              <span style={{ color: '#34d399' }}>
+                ↑ {booking.boardingPoint || '—'}
+              </span>
+              <span style={{ color: '#334155' }}>·</span>
+              <span style={{ color: '#60a5fa' }}>
+                ↓ {booking.dropPoint || '—'}
+              </span>
+            </div>
+          )}
+
           {/* Date + Time */}
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-1">
@@ -196,7 +218,7 @@ const BookingCard = ({ booking, onPay, paying }) => {
                   className="text-[10px] md:text-[11px]"
                   style={{ color: '#64748b' }}
                 >
-                  {booking.departureTime}
+                  {formatTime12h(booking.departureTime)}
                 </span>
               </div>
             )}
@@ -222,10 +244,26 @@ const BookingCard = ({ booking, onPay, paying }) => {
                 className="text-[10px] md:text-[11px] font-bold"
                 style={{ color: '#34d399' }}
               >
-                ${parseFloat(booking.price || 0).toFixed(2)}
+                ৳{Number(booking.price || 0).toLocaleString('en-BD')}
               </span>
             </div>
           </div>
+
+          {/* Passenger name + mobile */}
+          {(booking.customerName || booking.mobile) && (
+            <div className="flex items-center gap-3 flex-wrap">
+              {booking.customerName && (
+                <span className="text-[10px]" style={{ color: '#475569' }}>
+                  👤 {booking.customerName}
+                </span>
+              )}
+              {booking.mobile && (
+                <span className="text-[10px]" style={{ color: '#475569' }}>
+                  📞 {booking.mobile}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -413,6 +451,7 @@ const MyBookings = () => {
       const res = await axiosSecure.post('/create-checkout-session', {
         ticketId: booking.ticketId,
         quantity: booking.quantity || 1,
+        bookingId: booking._id,
       });
       if (res.data?.url) window.location.href = res.data.url;
     } catch (err) {
